@@ -1,0 +1,86 @@
+openapi: 3.0.1
+info:
+  title: Sample API
+  description: API description in Markdown.
+  version: 1.0.0
+servers:
+  - url: 'https://api.example.com'
+paths: {}
+components:
+  schemas:
+    Test0:
+      title: "Sample0"
+      description: "Simple data type, no nested/reapeated structure"
+      type: object
+      properties:
+        key1:
+          type: string
+          nullable: true
+        key2:
+          type: string
+          nullable: true
+    Sample0:
+      title: "Sample0"
+      description: "Simple data type, no nested/reapeated structure"
+      type: object
+      properties:
+        key1:
+          type: string
+          nullable: true
+        key2:
+          type: string
+          nullable: false
+    Sample1:
+      title: "Sample1"
+      description: "Sample1 object definition"
+      type: object
+      properties:
+        simple_string:
+          type: string
+          default: "Hello amigo!"
+        uuid_string:
+          type: string
+          format: uuid
+        date_string:
+          type: string
+          format: date
+        datetime_string:
+          type: string
+          format: 'date-time'
+        enum_string:
+          type: string
+          enum:
+            - "hello"
+            - "bonjour"
+            - "Guten Tag"
+        integer32_int:
+          type: integer
+          format: int32
+          nullable: true
+        integer64_int:
+          type: integer
+          format: int64
+          nullable: true
+        double_number:
+          type: number
+          format: double
+          nullable: true
+        float_number:
+          type: number
+          format: float
+          nullable: true
+    Sample2:
+      type: object
+      properties:
+        Map:
+          type: object
+          additionalProperties:
+            $ref: '#/components/schemas/Sample1'
+    Sample3:
+      type: object
+      properties:
+        values:
+          type: array
+          items:
+            $ref: '#/components/schemas/Sample1'
+          nullable: false
