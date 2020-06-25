@@ -1,6 +1,7 @@
 package org.apache.parquet.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import io.swagger.v3.oas.models.media.IntegerSchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
@@ -106,6 +107,10 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
       if (field instanceof StringSchema) {
         return new StringWriter();
+        //todo: add check for: date, date-time, uuid
+      }
+      else if (field instanceof IntegerSchema) {
+        return new IntWriter();
       }
       //todo: all other cases
 
@@ -186,9 +191,25 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
       if (node.isTextual()) {
         Binary binaryString = Binary.fromString(node.asText());
         recordConsumer.addBinary(binaryString);
+      } else {
+        LOG.error("Type {} not expected in StringWriter", node.getNodeType());
       }
-      // else, what to do?
     }
   }
+
+  class IntWriter extends FieldWriter {
+    @Override
+    void writeRawValue(Object value) {
+      JsonNode node = (JsonNode) value;
+
+      if (node.isInt()) {
+        recordConsumer.addInteger(node.asInt());
+      } else {
+        LOG.error("Type {} not expected in IntWriter", node.getNodeType());
+      }
+    }
+  }
+
+
 
 }

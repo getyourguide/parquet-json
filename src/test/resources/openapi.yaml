@@ -9,7 +9,7 @@ paths: {}
 components:
   schemas:
     Test0:
-      title: "Sample0"
+      title: "Test0"
       description: "Simple data type, no nested/reapeated structure"
       type: object
       properties:
@@ -18,6 +18,22 @@ components:
           nullable: true
         key2:
           type: string
+          nullable: true
+    Test1:
+      title: "Test1"
+      type: object
+      properties:
+        key1:
+          type: integer
+          format: int32
+          nullable: true
+        key2:
+          type: integer
+          format: int64
+          nullable: true
+        key3:
+          type: integer
+          format: int16
           nullable: true
     Sample0:
       title: "Sample0"

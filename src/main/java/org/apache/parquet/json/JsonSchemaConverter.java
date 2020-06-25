@@ -3,6 +3,7 @@ package org.apache.parquet.json;
 import static org.apache.parquet.schema.LogicalTypeAnnotation.stringType;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32;
+import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64;
 
 import io.swagger.v3.oas.models.media.BinarySchema;
 import io.swagger.v3.oas.models.media.IntegerSchema;
@@ -72,7 +73,19 @@ public class JsonSchemaConverter {
       return ParquetType.of(BINARY, stringType());
     }
     else if (fieldSchema instanceof IntegerSchema) {
-      return ParquetType.of(INT32);
+      ParquetType IntType = ParquetType.of(INT32);
+      switch (fieldSchema.getFormat()) {
+        case "int16":
+          IntType = ParquetType.of(INT32, LogicalTypeAnnotation.intType(16, false));
+          break;
+        case "int32":
+          IntType = ParquetType.of(INT32);
+          break;
+        case "int64":
+          IntType = ParquetType.of(INT64);
+          break;
+      }
+      return IntType;
     }
     else if (fieldSchema instanceof BinarySchema) {
       return ParquetType.of(BINARY);
