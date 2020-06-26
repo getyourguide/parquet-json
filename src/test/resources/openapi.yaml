@@ -1,102 +1,44 @@
 openapi: 3.0.1
 info:
-  title: Sample API
-  description: API description in Markdown.
+  title: Test schemas
+  description: Test schemas for parquet-json
   version: 1.0.0
 servers:
   - url: 'https://api.example.com'
 paths: {}
 components:
   schemas:
-    Test0:
-      title: "Test0"
-      description: "Simple data type, no nested/reapeated structure"
+    TestPrimitives:
+      title: "TestPrimitives"
       type: object
       properties:
-        key1:
+        key_string:
           type: string
           nullable: true
-        key2:
-          type: string
-          nullable: true
-    Test1:
-      title: "Test1"
-      type: object
-      properties:
-        key1:
+        key_int32:
           type: integer
           format: int32
           nullable: true
-        key2:
+        key_int64:
           type: integer
           format: int64
           nullable: true
-        key3:
-          type: integer
-          format: int16
-          nullable: true
-    Sample0:
-      title: "Sample0"
-      description: "Simple data type, no nested/reapeated structure"
-      type: object
-      properties:
-        key1:
-          type: string
-          nullable: true
-        key2:
-          type: string
-          nullable: false
-    Sample1:
-      title: "Sample1"
-      description: "Sample1 object definition"
-      type: object
-      properties:
-        simple_string:
-          type: string
-          default: "Hello amigo!"
-        uuid_string:
-          type: string
-          format: uuid
-        date_string:
-          type: string
-          format: date
-        datetime_string:
-          type: string
-          format: 'date-time'
-        enum_string:
-          type: string
-          enum:
-            - "hello"
-            - "bonjour"
-            - "Guten Tag"
-        integer32_int:
-          type: integer
-          format: int32
-          nullable: true
-        integer64_int:
-          type: integer
-          format: int64
-          nullable: true
-        double_number:
-          type: number
-          format: double
-          nullable: true
-        float_number:
+        key_float:
           type: number
           format: float
           nullable: true
-    Sample2:
-      type: object
-      properties:
-        Map:
-          type: object
-          additionalProperties:
-            $ref: '#/components/schemas/Sample1'
-    Sample3:
-      type: object
-      properties:
-        values:
-          type: array
-          items:
-            $ref: '#/components/schemas/Sample1'
-          nullable: false
+        key_double:
+          type: number
+          format: double
+          nullable: true
+        is_true:
+          type: boolean
+          nullable: true
+        date:
+          type: string
+          format: date
+          nullable: true
+        datetime:
+          type: string
+          format: date-time
+          nullable: true

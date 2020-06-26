@@ -14,9 +14,8 @@ import org.junit.Test;
 public class JsonSchemaConverterTest {
 
     @Test
-    public void testConvertSimpleStringtype() throws Exception {
-
-        String TypeName = "Sample0";
+    public void testConvertPrimitiveTypes() throws Exception {
+        String TypeName = "TestPrimitives";
         String resourceName = "openapi.yaml";
 
         ClassLoader classLoader = getClass().getClassLoader();
@@ -32,36 +31,15 @@ public class JsonSchemaConverterTest {
         System.out.println(targetSchema.toString());
 
         String expectedSchema =
-                "message Sample0 {\n" +
-                        "  optional binary key1 (STRING);\n" +
-                        "  required binary key2 (STRING);\n" +
-                        "}";
-
-        assertEquals(MessageTypeParser.parseMessageType(expectedSchema).toString(), targetSchema.toString());
-    }
-
-    @Test
-    public void testConvertSimpleInttype() throws Exception {
-        String TypeName = "Test1";
-        String resourceName = "openapi.yaml";
-
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
-        String absolutePath = file.getAbsolutePath();
-
-        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
-        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
-
-        JsonSchemaConverter jsonSchemaConverter = new JsonSchemaConverter();
-        MessageType targetSchema = jsonSchemaConverter.convert(schema);
-
-        System.out.println(targetSchema.toString());
-
-        String expectedSchema =
-                "message Test1 {\n" +
-                        "  optional INT32 key1;\n" +
-                        "  optional INT64 key2;\n" +
-                        "  optional INT32 key3 (INTEGER(16,false));\n" +
+                "message TestPrimitives {\n" +
+                        "  optional BINARY key_string (STRING);\n" +
+                        "  optional INT32 key_int32;\n" +
+                        "  optional INT64 key_int64;\n" +
+                        "  optional FLOAT key_float;\n" +
+                        "  optional DOUBLE key_double;\n" +
+                        "  optional BOOLEAN is_true;\n" +
+                        "  optional INT32 date (DATE);\n" + //will have annotation
+                        "  optional INT64 datetime (TIMESTAMP(MILLIS,true));\n" +
                         "}";
 
         assertEquals(MessageTypeParser.parseMessageType(expectedSchema).toString(), targetSchema.toString());
