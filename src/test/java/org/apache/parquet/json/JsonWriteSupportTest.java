@@ -87,4 +87,70 @@ public class JsonWriteSupportTest {
 
     }
 
+    @Test
+    public void testArraysOfPrimitives() throws Exception {
+        String TypeName = "TestArraysPrimitives";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
+
+        JsonWriteSupport support = new JsonWriteSupport(schema);
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+
+        String json = "{\"array_string\":[\"hello\",\"bonjour\",\"gruezi\",\"hallo\"]}";
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode payload = mapper.readTree(json);
+
+        support.write(payload);
+        System.out.println(readConsumerMock.toString());
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+
+        inOrder.verify(readConsumerMock).startField("array_string", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("hello"));
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("bonjour"));
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("gruezi"));
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("hallo"));
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("array_string", 0);
+
+        inOrder.verify(readConsumerMock).endMessage();
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+    }
+
 }

@@ -1,6 +1,7 @@
 package org.apache.parquet.json;
 
 import static org.apache.parquet.schema.LogicalTypeAnnotation.dateType;
+import static org.apache.parquet.schema.LogicalTypeAnnotation.listType;
 import static org.apache.parquet.schema.LogicalTypeAnnotation.stringType;
 import static org.apache.parquet.schema.LogicalTypeAnnotation.timestampType;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
@@ -10,6 +11,7 @@ import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.FLOAT;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT32;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.INT64;
 
+import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.BinarySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.DateSchema;
@@ -63,13 +65,18 @@ public class JsonSchemaConverter {
 
     private Type.Repetition getRepetition(Schema descriptor) {
 
+        if (descriptor instanceof ArraySchema) {
+            return Repetition.REPEATED;
+        }
+
         if (descriptor.getNullable() != null && descriptor.getNullable()) {
             return Type.Repetition.OPTIONAL;
         } else if (descriptor.getNullable() != null && !descriptor.getNullable()) {
             return Repetition.REQUIRED;
         } else {
-            //todo: is the default non nullable?
-            return Type.Repetition.REQUIRED;
+            // https://swagger.io/specification/
+            // The default value is nullable=false
+            return Repetition.REQUIRED;
         }
 
     }
@@ -77,8 +84,41 @@ public class JsonSchemaConverter {
     private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addField(Schema descriptor, final GroupBuilder<T> builder) {
 
         ParquetType parquetType = getParquetType(descriptor);
+
+        if (descriptor instanceof ArraySchema) {
+            Type.Repetition nullableField = Repetition.REQUIRED;
+            Type.Repetition nullableItems;
+
+            if (descriptor.getNullable() != null) {
+                if (descriptor.getNullable()) {
+                    nullableField = Repetition.OPTIONAL;
+                }
+            }
+
+            nullableItems = getRepetition(((ArraySchema) descriptor).getItems());
+
+            return addRepeatedPrimitive(parquetType.primitiveType,
+                    parquetType.logicalTypeAnnotation,
+                    nullableField,
+                    nullableItems,
+                    builder);
+        }
+
         return builder.primitive(parquetType.primitiveType, getRepetition(descriptor)).as(parquetType.logicalTypeAnnotation);
 
+    }
+
+    private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addRepeatedPrimitive(PrimitiveTypeName primitiveType,
+                                                                                                     LogicalTypeAnnotation logicalTypeAnnotation,
+                                                                                                     Type.Repetition nullableField,
+                                                                                                     Type.Repetition nullableItems,
+                                                                                                     final GroupBuilder<T> builder) {
+        return builder
+                .group(nullableField).as(listType())
+                .group(Repetition.REPEATED)
+                .primitive(primitiveType, nullableItems).as(logicalTypeAnnotation)
+                .named("element")
+                .named("list");
     }
 
     private ParquetType getParquetType(Schema fieldSchema) {
@@ -121,7 +161,12 @@ public class JsonSchemaConverter {
                             fieldSchema.getFormat().toLowerCase());
             }
 
-        } else {
+        } else if (fieldSchema instanceof ArraySchema) {
+            // ArraySchema will be marked as Repeated by the ParquetType function
+            // what we are interested in here in to get the type of the elements
+            return getParquetType(((ArraySchema) fieldSchema).getItems());
+        }
+        else {
             throw new UnsupportedOperationException("Cannot convert OpenAPI schema: unknown type " +
                     fieldSchema.getClass().getName());
         }

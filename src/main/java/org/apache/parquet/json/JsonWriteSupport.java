@@ -1,6 +1,9 @@
 package org.apache.parquet.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.NullNode;
+import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.DateSchema;
 import io.swagger.v3.oas.models.media.DateTimeSchema;
@@ -18,6 +21,7 @@ import java.time.Month;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.hadoop.api.WriteSupport;
@@ -113,6 +117,17 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
         }
 
+        private FieldWriter CreateArrayWriter(Schema field) {
+
+            if (field instanceof ArraySchema) {
+                FieldWriter itemWriter = createWriter(((ArraySchema) field).getItems(), null);
+                return new ArrayWriter(itemWriter);
+            } else {
+                return unknownType(field); //todo: throw a proper unknown
+            }
+
+        }
+
         private FieldWriter createWriter(Schema field, Type type) {
 
             if (field instanceof StringSchema || field instanceof PasswordSchema || field instanceof EmailSchema) {
@@ -147,7 +162,10 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                     return unknownType(field);
                 }
 
-            } else {
+            } else if (field instanceof ArraySchema) {
+                return CreateArrayWriter(field);
+            }
+            else {
                 //todo: all other cases
                 return unknownType(field); //should not be executed, always throws exception.
             }
@@ -212,6 +230,11 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
         }
 
         void writeField(Object value) {
+
+            if (value instanceof NullNode) {
+                return;
+            }
+
             recordConsumer.startField(fieldName, index);
             writeRawValue(value);
             recordConsumer.endField(fieldName, index);
@@ -316,6 +339,48 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
         final void writeRawValue(Object value) {
             JsonNode node = (JsonNode) value;
             recordConsumer.addDouble(node.asDouble());
+        }
+    }
+
+    class ArrayWriter extends FieldWriter {
+        final FieldWriter fieldWriter;
+
+        ArrayWriter(FieldWriter fieldWriter) {
+            this.fieldWriter = fieldWriter;
+        }
+
+        @Override
+        final void writeRawValue(Object value) {
+            throw new UnsupportedOperationException("Array has no raw value");
+        }
+
+        @Override
+        final void writeField(Object value) {
+
+            ArrayNode node = (ArrayNode) value;
+
+            if (node.size() == 0) {
+                return;
+            }
+
+            recordConsumer.startField(fieldName, index);
+            recordConsumer.startGroup();
+
+            recordConsumer.startField("list", 0); // This is the wrapper group for the array field
+            for (Iterator<JsonNode> it = node.elements(); it.hasNext(); ) {
+                Object listEntry = it.next();
+                recordConsumer.startGroup();
+                recordConsumer.startField("element", 0); // This is the mandatory inner field
+
+                fieldWriter.writeRawValue(listEntry);
+
+                recordConsumer.endField("element", 0);
+                recordConsumer.endGroup();
+            }
+            recordConsumer.endField("list", 0);
+
+            recordConsumer.endGroup();
+            recordConsumer.endField(fieldName, index);
         }
     }
 

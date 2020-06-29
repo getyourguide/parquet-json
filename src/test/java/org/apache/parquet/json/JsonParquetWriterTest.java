@@ -16,7 +16,7 @@ import org.junit.Test;
 public class JsonParquetWriterTest {
 
     @Test
-    public void testWriteFile() throws Exception {
+    public void testWriteSimpleFile() throws Exception {
 
         Path path = new Path("./data.parquet");
         String TypeName = "TestPrimitives";
@@ -41,6 +41,37 @@ public class JsonParquetWriterTest {
         writer.close();
 
         File inFile = new File("data.parquet");
+
+        assertTrue(inFile.exists());
+
+    }
+
+    @Test
+    public void testWriteComplexFile() throws Exception {
+
+        Path path = new Path("./arrays.parquet");
+        String TypeName = "TestArraysPrimitives";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        ParquetWriter<JsonNode> writer =
+                new JsonParquetWriter(path, schema);
+
+        String json = "{\"array_string\":[\"hello\",\"bonjour\",\"gruezi\",\"hallo\"]}";
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode payload = mapper.readTree(json);
+
+        writer.write(payload);
+        writer.close();
+
+        File inFile = new File("arrays.parquet");
 
         assertTrue(inFile.exists());
 

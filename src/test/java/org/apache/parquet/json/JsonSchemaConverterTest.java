@@ -28,11 +28,9 @@ public class JsonSchemaConverterTest {
         JsonSchemaConverter jsonSchemaConverter = new JsonSchemaConverter();
         MessageType targetSchema = jsonSchemaConverter.convert(schema);
 
-        System.out.println(targetSchema.toString());
-
         String expectedSchema =
                 "message TestPrimitives {\n" +
-                        "  optional BINARY key_string (STRING);\n" +
+                        "  required BINARY key_string (STRING);\n" +
                         "  optional INT32 key_int32;\n" +
                         "  optional INT64 key_int64;\n" +
                         "  optional FLOAT key_float;\n" +
@@ -40,6 +38,43 @@ public class JsonSchemaConverterTest {
                         "  optional BOOLEAN is_true;\n" +
                         "  optional INT32 date (DATE);\n" + //will have annotation
                         "  optional INT64 datetime (TIMESTAMP(MILLIS,true));\n" +
+                        "}";
+
+        assertEquals(MessageTypeParser.parseMessageType(expectedSchema).toString(), targetSchema.toString());
+    }
+
+    @Test
+    public void testConvertArraysofPrimitiveTypes() throws Exception {
+        String TypeName = "TestArraysPrimitives";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        JsonSchemaConverter jsonSchemaConverter = new JsonSchemaConverter();
+        MessageType targetSchema = jsonSchemaConverter.convert(schema);
+
+        String expectedSchema =
+                "message TestArraysPrimitives {\n"+
+                        "  optional group array_string (LIST) {\n"+
+                        "  repeated group list {\n"+
+                        "    required binary element (STRING);\n"+
+                        "    }\n"+
+                        "  }\n"+
+                        "  required group array_int (LIST) {\n"+
+                        "  repeated group list {\n"+
+                        "    optional INT64 element;\n"+
+                        "    }\n"+
+                        "  }\n"+
+                        "  optional group array_bool (LIST) {\n"+
+                        "  repeated group list {\n"+
+                        "    optional BOOLEAN element;\n"+
+                        "    }\n"+
+                        "  }\n"+
                         "}";
 
         assertEquals(MessageTypeParser.parseMessageType(expectedSchema).toString(), targetSchema.toString());

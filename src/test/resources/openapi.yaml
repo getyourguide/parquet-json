@@ -14,7 +14,7 @@ components:
       properties:
         key_string:
           type: string
-          nullable: true
+          nullable: false
         key_int32:
           type: integer
           format: int32
@@ -42,3 +42,24 @@ components:
           type: string
           format: date-time
           nullable: true
+    TestArraysPrimitives:
+      title: "TestArraysPrimitives"
+      type: object
+      properties:
+        array_string:
+          nullable: true
+          type: array
+          items:
+            type: string
+        array_int:
+          type: array
+          items:
+            type: integer
+            format: int64
+            nullable: true
+        array_bool:
+          type: array
+          nullable: true
+          items:
+            type: boolean
+            nullable: true
