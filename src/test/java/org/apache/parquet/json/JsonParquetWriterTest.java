@@ -8,6 +8,7 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import java.io.File;
+import java.io.IOException;
 import java.util.Objects;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
@@ -72,6 +73,68 @@ public class JsonParquetWriterTest {
         writer.close();
 
         File inFile = new File("arrays.parquet");
+
+        assertTrue(inFile.exists());
+
+    }
+
+    @Test
+    public void testWriteNestedFile() throws Exception {
+
+        Path path = new Path("./nested.parquet");
+        String TypeName = "TestNestedStructure";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        ParquetWriter<JsonNode> writer =
+                new JsonParquetWriter(path, schema);
+
+        String json = "{\"simple_nested\":{\"key1\":\"2020-06-20\",\"key2\":[1,2,3]}}";
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode payload = mapper.readTree(json);
+
+        writer.write(payload);
+        writer.close();
+
+        File inFile = new File("nested.parquet");
+
+        assertTrue(inFile.exists());
+
+    }
+
+    @Test
+    public void testWriteDeeperNested() throws IOException {
+
+        Path path = new Path("./deep_nested.parquet");
+        String TypeName = "TestDeeperNestedStructure";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        ParquetWriter<JsonNode> writer =
+                new JsonParquetWriter(path, schema);
+
+        String json = "{\"1st_level_key1\":\"Hello\",\"1st_level_key_nested\":{\"key1\":{\"key1_key1\":\"Bonjour\",\"key1_key2\":\"Guten Tag!\"},\"key2\":\"Olla!\"}}";
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode payload = mapper.readTree(json);
+
+        writer.write(payload);
+        writer.close();
+
+        File inFile = new File("deep_nested.parquet");
 
         assertTrue(inFile.exists());
 

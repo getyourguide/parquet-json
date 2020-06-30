@@ -153,4 +153,141 @@ public class JsonWriteSupportTest {
         Mockito.verifyNoMoreInteractions(readConsumerMock);
     }
 
+    @Test
+    public void test1stLevelNestedStructure() throws Exception {
+        String TypeName = "TestNestedStructure";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
+
+        JsonWriteSupport support = new JsonWriteSupport(schema);
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+
+        String json = "{\"simple_nested\":{\"key1\":\"2020-06-20\",\"key2\":[1,2,3]}}";
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode payload = mapper.readTree(json);
+
+        support.write(payload);
+        System.out.println(readConsumerMock.toString());
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+        inOrder.verify(readConsumerMock).startField("simple_nested", 1);
+
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key1", 0);
+        inOrder.verify(readConsumerMock).addInteger(18433);
+        inOrder.verify(readConsumerMock).endField("key1", 0);
+
+
+        inOrder.verify(readConsumerMock).startField("key2", 1);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(1);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(2);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(3);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("key2", 1);
+
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("simple_nested", 1);
+        inOrder.verify(readConsumerMock).endMessage();
+
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+    }
+
+    @Test
+    public void test2stLevelNestedStructure() throws Exception {
+        String TypeName = "TestDeeperNestedStructure";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
+
+        JsonWriteSupport support = new JsonWriteSupport(schema);
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+
+        String json = "{\"1st_level_key1\":\"Hello\",\"1st_level_key_nested\":{\"key1\":{\"key1_key1\":\"Bonjour\",\"key1_key2\":\"Guten Tag!\"},\"key2\":\"Olla!\"}}";
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonNode payload = mapper.readTree(json);
+
+        support.write(payload);
+        System.out.println(readConsumerMock.toString());
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+        inOrder.verify(readConsumerMock).startField("1st_level_key1", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("Hello"));
+        inOrder.verify(readConsumerMock).endField("1st_level_key1", 0);
+
+        inOrder.verify(readConsumerMock).startField("1st_level_key_nested", 1);
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key1", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key1_key1", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("Bonjour"));
+        inOrder.verify(readConsumerMock).endField("key1_key1", 0);
+
+        inOrder.verify(readConsumerMock).startField("key1_key2", 1);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("Guten Tag!"));
+        inOrder.verify(readConsumerMock).endField("key1_key2", 1);
+
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("key1", 0);
+
+        inOrder.verify(readConsumerMock).startField("key2", 1);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("Olla!"));
+        inOrder.verify(readConsumerMock).endField("key2", 1);
+
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("1st_level_key_nested", 1);
+
+        inOrder.verify(readConsumerMock).endMessage();
+
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+
+    }
+
 }

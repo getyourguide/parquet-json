@@ -3,6 +3,7 @@ package org.apache.parquet.json;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.DateSchema;
@@ -39,7 +40,6 @@ import org.slf4j.LoggerFactory;
  */
 public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
-    public static final String JS_CLASS_WRITE = "parquet.json.writeClass";
     private static final Logger LOG = LoggerFactory.getLogger(JsonWriteSupport.class);
 
     private RecordConsumer recordConsumer;
@@ -92,21 +92,53 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
         throw new InvalidRecordException(exceptionMsg);
     }
 
+    class FieldWriter {
+        String fieldName;
+        int index = -1;
+
+        void setFieldName(String fieldName) {
+            this.fieldName = fieldName;
+        }
+
+        void setIndex(int index) {
+            this.index = index;
+        }
+
+        void writeRawValue(Object value) {
+        }
+
+        void writeField(Object value) {
+
+            if (value instanceof NullNode) {
+                LOG.debug("Null value");
+                return;
+            }
+
+            recordConsumer.startField(fieldName, index);
+            writeRawValue(value);
+            recordConsumer.endField(fieldName, index);
+        }
+
+    }
+
     class MessageWriter extends FieldWriter {
         final FieldWriter[] fieldWriters;
+        ObjectSchema messageObjectSchema;
 
         @SuppressWarnings("unchecked")
-        MessageWriter(ObjectSchema objectSchema, GroupType schema) {
-            int fieldsSize = objectSchema.getProperties().entrySet().size();
+        MessageWriter(ObjectSchema objSchema, GroupType schema) {
+            this.messageObjectSchema = objSchema;
+            int fieldsSize = messageObjectSchema.getProperties().entrySet().size();
             fieldWriters = (FieldWriter[]) Array.newInstance(FieldWriter.class, fieldsSize);
 
             int fieldIndex = 0;
-            for (Map.Entry<String, Schema> field : objectSchema.getProperties().entrySet()) {
+            for (Map.Entry<String, Schema> field : messageObjectSchema.getProperties().entrySet()) {
 
                 String name = field.getKey();
                 Type type = schema.getType(name);
                 FieldWriter writer = createWriter(field.getValue(), type);
 
+                LOG.debug("Field {} has index {}", name, fieldIndex);
                 writer.setFieldName(name);
                 writer.setIndex(fieldIndex);
 
@@ -117,22 +149,19 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
         }
 
-        private FieldWriter CreateArrayWriter(Schema field) {
+        private MessageWriter CreateObjectWriter(Schema field, Type type) {
+            return new MessageWriter((ObjectSchema) field, type.asGroupType());
+        }
 
-            if (field instanceof ArraySchema) {
-                FieldWriter itemWriter = createWriter(((ArraySchema) field).getItems(), null);
-                return new ArrayWriter(itemWriter);
-            } else {
-                return unknownType(field); //todo: throw a proper unknown
-            }
-
+        private ArrayWriter CreateArrayWriter(Schema field) {
+            FieldWriter itemWriter = createWriter(((ArraySchema) field).getItems(), null);
+            return new ArrayWriter(itemWriter);
         }
 
         private FieldWriter createWriter(Schema field, Type type) {
 
             if (field instanceof StringSchema || field instanceof PasswordSchema || field instanceof EmailSchema) {
                 return new StringWriter();
-                //todo: add check for: date, date-time, uuid
             } else if (field instanceof UUIDSchema) {
                 //todo: fix once PARQUET-1827 is released
                 return new StringWriter();
@@ -141,6 +170,11 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             } else if (field instanceof DateTimeSchema) {
                 return new DateTimeWriter();
             } else if (field instanceof IntegerSchema) {
+
+                if (field.getFormat() == null) {
+                    return new IntWriter();
+                }
+
                 if (field.getFormat().toLowerCase().equals("int32")) {
                     return new IntWriter();
                 } else if (field.getFormat().toLowerCase().equals("int64")) {
@@ -154,6 +188,10 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                 return new BooleanWriter();
             } else if (field instanceof NumberSchema) {
 
+                if (field.getFormat() == null) {
+                    return new FloatWriter();
+                }
+
                 if (field.getFormat().toLowerCase().equals("float")) {
                     return new FloatWriter();
                 } else if (field.getFormat().toLowerCase().equals("double")) {
@@ -164,8 +202,9 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
             } else if (field instanceof ArraySchema) {
                 return CreateArrayWriter(field);
-            }
-            else {
+            } else if (field instanceof ObjectSchema) {
+                return CreateObjectWriter(field, type);
+            } else {
                 //todo: all other cases
                 return unknownType(field); //should not be executed, always throws exception.
             }
@@ -179,22 +218,31 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             writeAllFields((JsonNode) value);
         }
 
+        // Use to write an ObjectNode (nested structure)
+        @Override
+        final void writeRawValue(Object value) {
+            recordConsumer.startGroup();
+            writeAllFields((ObjectNode) value);
+            recordConsumer.endGroup();
+        }
+
         private void writeAllFields(JsonNode pb) {
 
             int fieldIndex = 0;
-            for (Map.Entry<String, Schema> field : objectSchema.getProperties().entrySet()) {
+            // objectSchema doesn't map to the right schema, it maps to the root schema
+            for (Map.Entry<String, Schema> field : messageObjectSchema.getProperties().entrySet()) {
 
-                fieldName = field.getKey();
+                String lkpFieldName = field.getKey();
 
-                LOG.info("Looking for {}", fieldName);
-                System.out.println("Looking for " + fieldName);
+                LOG.debug("Looking for {}", lkpFieldName);
 
-                if (pb.has(fieldName)) {
-                    JsonNode node = pb.get(fieldName);
+                if (pb.has(lkpFieldName)) {
+                    JsonNode node = pb.get(lkpFieldName);
+                    LOG.debug(lkpFieldName + " is " + node.toPrettyString());
 
                     if (!node.isMissingNode()) {
-                        LOG.debug("Writting field {}", fieldName);
-                        fieldWriters[fieldIndex].writeField(pb.get(fieldName));
+                        LOG.debug("Writing field {}", lkpFieldName);
+                        fieldWriters[fieldIndex].writeField(node);
                     }
                 }
 
@@ -202,42 +250,6 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                 fieldIndex++; //todo: compute some index based on schema
 
             }
-        }
-
-    }
-
-    class FieldWriter {
-        String fieldName;
-        int index = -1;
-
-        void setFieldName(String fieldName) {
-            this.fieldName = fieldName;
-        }
-
-        /**
-         * sets index of field inside parquet message.
-         */
-        //todo: is this always needed?
-        void setIndex(int index) {
-            this.index = index;
-        }
-
-        /**
-         * Used for writing repeated fields
-         */
-        void writeRawValue(Object value) {
-
-        }
-
-        void writeField(Object value) {
-
-            if (value instanceof NullNode) {
-                return;
-            }
-
-            recordConsumer.startField(fieldName, index);
-            writeRawValue(value);
-            recordConsumer.endField(fieldName, index);
         }
 
     }

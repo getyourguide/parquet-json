@@ -5,6 +5,7 @@ import static org.junit.Assert.assertEquals;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.parser.OpenAPIV3Parser;
+import io.swagger.v3.parser.core.models.ParseOptions;
 import java.io.File;
 import java.util.Objects;
 import org.apache.parquet.schema.MessageType;
@@ -78,6 +79,44 @@ public class JsonSchemaConverterTest {
                         "}";
 
         assertEquals(MessageTypeParser.parseMessageType(expectedSchema).toString(), targetSchema.toString());
+    }
+
+    @Test
+    public void TestNestedStructureTypes() throws Exception {
+        String TypeName = "TestNestedStructure";
+        String resourceName = "openapi.yaml";
+
+        ClassLoader classLoader = getClass().getClassLoader();
+        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
+        String absolutePath = file.getAbsolutePath();
+
+        ParseOptions options = new ParseOptions();
+        options.setResolve(true);
+        options.setFlatten(true);
+
+        System.out.println(options);
+
+        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
+        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
+
+        JsonSchemaConverter jsonSchemaConverter = new JsonSchemaConverter();
+        MessageType targetSchema = jsonSchemaConverter.convert(schema);
+
+        String expectedSchema =
+                "message TestNestedStructure {\n"+
+                        "  optional int32 simple_key;\n"+
+                        "  required group simple_nested {\n"+
+                        "    required int32 key1 (DATE);\n"+
+                        "    required group key2 (LIST) {\n"+
+                        "      repeated group list {\n"+
+                        "        required int32 element;\n"+
+                        "      }\n"+
+                        "    }\n"+
+                        "  }\n"+
+                        "}";
+
+        assertEquals(MessageTypeParser.parseMessageType(expectedSchema).toString(), targetSchema.toString());
+
     }
 
 

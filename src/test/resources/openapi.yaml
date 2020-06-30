@@ -63,3 +63,43 @@ components:
           items:
             type: boolean
             nullable: true
+    TestNestedStructure:
+      title: "TestNestedStructure"
+      type: object
+      properties:
+        simple_key:
+          type: integer
+          nullable: true
+        simple_nested:
+          type: object
+          title: "simple_nested"
+          properties:
+            key1:
+              type: string
+              format: date
+            key2:
+              type: array
+              items:
+                type: integer
+    TestDeeperNestedStructure:
+      title: "TestDeeperNestedStructure"
+      type: object
+      properties:
+        1st_level_key1:
+          type: string
+          nullable: true
+        1st_level_key_nested:
+          type: object
+          properties:
+            key1:
+              type: object
+              properties:
+                key1_key1:
+                  type: string
+                  nullable: true
+                key1_key2:
+                  type: string
+                  nullable: true
+            key2:
+              type: string
+              nullable: true

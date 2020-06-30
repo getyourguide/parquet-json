@@ -54,10 +54,13 @@ public class JsonSchemaConverter {
     /* Iterates over list of fields. **/
     private <T> GroupBuilder<T> convertFields(GroupBuilder<T> groupBuilder, Map<String, Schema> fieldDescriptors) {
 
+        int index = 0;
         for (Map.Entry<String, Schema> field : fieldDescriptors.entrySet()) {
             groupBuilder =
                     addField(field.getValue(), groupBuilder)
+                            //.id(index)
                             .named(field.getKey());
+            index++;
         }
 
         return groupBuilder;
@@ -82,6 +85,10 @@ public class JsonSchemaConverter {
     }
 
     private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addField(Schema descriptor, final GroupBuilder<T> builder) {
+
+        if (descriptor instanceof ObjectSchema) {
+            return addObjectField((ObjectSchema) descriptor, builder);
+        }
 
         ParquetType parquetType = getParquetType(descriptor);
 
@@ -121,6 +128,12 @@ public class JsonSchemaConverter {
                 .named("list");
     }
 
+    private <T> GroupBuilder<GroupBuilder<T>> addObjectField(ObjectSchema field, final GroupBuilder<T> builder) {
+        GroupBuilder<GroupBuilder<T>> group = builder.group(getRepetition(field));
+        convertFields(group, field.getProperties());
+        return group;
+    }
+
     private ParquetType getParquetType(Schema fieldSchema) {
 
         if (fieldSchema instanceof StringSchema || fieldSchema instanceof PasswordSchema || fieldSchema instanceof EmailSchema) {
@@ -134,6 +147,13 @@ public class JsonSchemaConverter {
         } else if (fieldSchema instanceof DateTimeSchema) {
             return ParquetType.of(INT64, timestampType(true, TimeUnit.MILLIS)); //todo: writer
         } else if (fieldSchema instanceof IntegerSchema) {
+
+            if (fieldSchema.getFormat() == null) {
+                // If no format specified, we use int32
+                //todo: document
+                return ParquetType.of(INT32);
+            }
+
             switch (fieldSchema.getFormat()) {
                 case "int16":
                     return ParquetType.of(INT32, LogicalTypeAnnotation.intType(16, false));
@@ -151,6 +171,12 @@ public class JsonSchemaConverter {
             return ParquetType.of(BOOLEAN);
         } else if (fieldSchema instanceof NumberSchema) {
 
+            if (fieldSchema.getFormat() == null) {
+                // If no format specified, we use float
+                //todo: document
+                return ParquetType.of(FLOAT);
+            }
+
             switch (fieldSchema.getFormat()) {
                 case "double":
                     return ParquetType.of(DOUBLE);
@@ -165,8 +191,7 @@ public class JsonSchemaConverter {
             // ArraySchema will be marked as Repeated by the ParquetType function
             // what we are interested in here in to get the type of the elements
             return getParquetType(((ArraySchema) fieldSchema).getItems());
-        }
-        else {
+        } else {
             throw new UnsupportedOperationException("Cannot convert OpenAPI schema: unknown type " +
                     fieldSchema.getClass().getName());
         }
