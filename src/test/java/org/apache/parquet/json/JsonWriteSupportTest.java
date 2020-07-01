@@ -1,18 +1,8 @@
 package org.apache.parquet.json;
 
-import com.fasterxml.jackson.databind.JsonNode;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.swagger.v3.oas.models.OpenAPI;
-import io.swagger.v3.oas.models.media.ObjectSchema;
-import io.swagger.v3.parser.OpenAPIV3Parser;
-import java.io.File;
-import java.util.Objects;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.io.RecordConsumerLoggingWrapper;
 import org.apache.parquet.io.api.Binary;
-import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -25,29 +15,13 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     @Test
     public void testPrimitives() throws Exception {
         String TypeName = "TestPrimitives";
-        String resourceName = "openapi.yaml";
-
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
-        String absolutePath = file.getAbsolutePath();
-
-        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
-        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
-
         RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(schema);
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
         support.init(new Configuration());
         support.prepareForWrite(readConsumerMock);
 
-        String json = "{\"key_string\":\"hello\",\"key_int32\":32,\"key_int64\":64,\"key_float\":10.10,\"key_double\":10.1010,\"is_true\":true,\"date\":\"2020-06-20\",\"datetime\":\"2020-06-20T10:10:10.000Z\"}";
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode payload = mapper.readTree(json);
-
-        support.write(payload);
-
-        System.out.println(readConsumerMock.toString());
+        support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
 
@@ -93,28 +67,13 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     @Test
     public void testArraysOfPrimitives() throws Exception {
         String TypeName = "TestArraysPrimitives";
-        String resourceName = "openapi.yaml";
-
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
-        String absolutePath = file.getAbsolutePath();
-
-        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
-        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
-
         RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(schema);
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
         support.init(new Configuration());
         support.prepareForWrite(readConsumerMock);
 
-        String json = "{\"array_string\":[\"hello\",\"bonjour\",\"gruezi\",\"hallo\"]}";
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode payload = mapper.readTree(json);
-
-        support.write(payload);
-        System.out.println(readConsumerMock.toString());
+        support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
 
@@ -161,28 +120,13 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     @Test
     public void test1stLevelNestedStructure() throws Exception {
         String TypeName = "TestNestedStructure";
-        String resourceName = "openapi.yaml";
-
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
-        String absolutePath = file.getAbsolutePath();
-
-        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
-        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
-
         RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(schema);
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
         support.init(new Configuration());
         support.prepareForWrite(readConsumerMock);
 
-        String json = "{\"simple_nested\":{\"key1\":\"2020-06-20\",\"key2\":[1,2,3]}}";
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode payload = mapper.readTree(json);
-
-        support.write(payload);
-        System.out.println(readConsumerMock.toString());
+        support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
 
@@ -235,27 +179,13 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     @Test
     public void test2stLevelNestedStructure() throws Exception {
         String TypeName = "TestDeeperNestedStructure";
-        String resourceName = "openapi.yaml";
-
-        ClassLoader classLoader = getClass().getClassLoader();
-        File file = new File(Objects.requireNonNull(classLoader.getResource(resourceName)).getFile());
-        String absolutePath = file.getAbsolutePath();
-
-        OpenAPI openAPI = new OpenAPIV3Parser().read(absolutePath);
-        ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get(TypeName);
-
         RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(schema);
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
         support.init(new Configuration());
         support.prepareForWrite(readConsumerMock);
 
-        String json = "{\"1st_level_key1\":\"Hello\",\"1st_level_key_nested\":{\"key1\":{\"key1_key1\":\"Bonjour\",\"key1_key2\":\"Guten Tag!\"},\"key2\":\"Olla!\"}}";
-
-        ObjectMapper mapper = new ObjectMapper();
-        JsonNode payload = mapper.readTree(json);
-
-        support.write(payload);
+        support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
 

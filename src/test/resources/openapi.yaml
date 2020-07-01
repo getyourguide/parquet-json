@@ -42,6 +42,15 @@ components:
           type: string
           format: date-time
           nullable: true
+      example:
+        key_string: hello
+        key_int32: 32
+        key_int64: 64
+        key_float: 10.1
+        key_double: 10.101
+        is_true: true
+        date: '2020-06-20'
+        datetime: '2020-06-20T10:10:10.000Z'
     TestArraysPrimitives:
       title: TestArraysPrimitives
       type: object
@@ -63,6 +72,12 @@ components:
           items:
             type: boolean
             nullable: true
+      example:
+        array_string:
+          - hello
+          - bonjour
+          - gruezi
+          - hallo
     TestArraysOfObjects:
       title: "TestArraysOfObjects"
       type: object
@@ -100,6 +115,10 @@ components:
               type: array
               items:
                 type: integer
+      example:
+        simple_nested:
+          key1: '2020-06-20'
+          key2: [1, 2, 3]
     TestDeeperNestedStructure:
       title: TestDeeperNestedStructure
       type: object
@@ -123,12 +142,12 @@ components:
               type: string
               nullable: true
       example:
-        1st_level_key1: "Hello"
+        1st_level_key1: Hello
         1st_level_key_nested:
           key1:
-            key1_key1: "Hallo!"
-            key1_key2: null
-          key2: "Bonjour"
+            key1_key1: Bonjour
+            key1_key2: Guten Tag!
+          key2: Olla!
     TestMapStructure:
       title: TestMapStructure
       type: object
