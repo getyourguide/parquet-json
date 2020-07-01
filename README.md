@@ -34,7 +34,7 @@ This project is mostly based on the ProtocolBuffer and Avro converters implement
 | object       | -              | GroupType |                            |
 | oneOf        | -              | Union     | not implemented            |
 | allOf        | -              |           | not supported              |
-| map          | -              | map       | key as string only         |
+| map          | -              | map       | key as string only, "free form" object and "Fixed Keys" not supported         |
 | enum         | -              | enum      | only string type supported |
 
 ## How to use the converter

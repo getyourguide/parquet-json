@@ -3,6 +3,7 @@ package org.apache.parquet.json;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.io.RecordConsumerLoggingWrapper;
 import org.apache.parquet.io.api.Binary;
+import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
@@ -11,16 +12,25 @@ import org.slf4j.LoggerFactory;
 
 public class JsonWriteSupportTest extends JsonParquetTest {
     private static final Logger LOG = LoggerFactory.getLogger(JsonWriteSupportTest.class);
+    private RecordConsumerLoggingWrapper readConsumerMock;
+
+    @Before
+    public void init() {
+     readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
+    }
+
+    private JsonWriteSupport getWriter(String schemaName) throws Exception {
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(schemaName));
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+        return support;
+    }
 
     @Test
     public void testPrimitives() throws Exception {
         String TypeName = "TestPrimitives";
-        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
-        support.init(new Configuration());
-        support.prepareForWrite(readConsumerMock);
-
+        JsonWriteSupport support = getWriter(TypeName);
         support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
@@ -61,18 +71,13 @@ public class JsonWriteSupportTest extends JsonParquetTest {
 
         inOrder.verify(readConsumerMock).endMessage();
         Mockito.verifyNoMoreInteractions(readConsumerMock);
-
     }
 
     @Test
     public void testArraysOfPrimitives() throws Exception {
         String TypeName = "TestArraysPrimitives";
-        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
-        support.init(new Configuration());
-        support.prepareForWrite(readConsumerMock);
-
+        JsonWriteSupport support = getWriter(TypeName);
         support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
@@ -120,12 +125,8 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     @Test
     public void test1stLevelNestedStructure() throws Exception {
         String TypeName = "TestNestedStructure";
-        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
-        support.init(new Configuration());
-        support.prepareForWrite(readConsumerMock);
-
+        JsonWriteSupport support = getWriter(TypeName);
         support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
@@ -179,12 +180,8 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     @Test
     public void test2stLevelNestedStructure() throws Exception {
         String TypeName = "TestDeeperNestedStructure";
-        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
 
-        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
-        support.init(new Configuration());
-        support.prepareForWrite(readConsumerMock);
-
+        JsonWriteSupport support = getWriter(TypeName);
         support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
@@ -221,19 +218,13 @@ public class JsonWriteSupportTest extends JsonParquetTest {
         inOrder.verify(readConsumerMock).endMessage();
 
         Mockito.verifyNoMoreInteractions(readConsumerMock);
-
     }
 
     @Test
     public void testMapSimpleStructure() throws Exception {
         String TypeName = "TestMapStructure";
 
-        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
-
-        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
-        support.init(new Configuration());
-        support.prepareForWrite(readConsumerMock);
-
+        JsonWriteSupport support = getWriter(TypeName);
         support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
@@ -317,20 +308,13 @@ public class JsonWriteSupportTest extends JsonParquetTest {
         inOrder.verify(readConsumerMock).endField("map_key", 0);
         inOrder.verify(readConsumerMock).endMessage();
         Mockito.verifyNoMoreInteractions(readConsumerMock);
-
-
     }
 
     @Test
     public void testMapObjectStructure() throws Exception {
         String TypeName = "TestMapStructureofObject";
 
-        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
-
-        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
-        support.init(new Configuration());
-        support.prepareForWrite(readConsumerMock);
-
+        JsonWriteSupport support = getWriter(TypeName);
         support.write(getExample(TypeName));
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
@@ -394,8 +378,6 @@ public class JsonWriteSupportTest extends JsonParquetTest {
         inOrder.verify(readConsumerMock).endMessage();
 
         Mockito.verifyNoMoreInteractions(readConsumerMock);
-
-
     }
 
 }
