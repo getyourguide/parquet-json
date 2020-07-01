@@ -4,12 +4,14 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
+import io.swagger.util.Json;
 import io.swagger.v3.oas.models.media.ArraySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.DateSchema;
 import io.swagger.v3.oas.models.media.DateTimeSchema;
 import io.swagger.v3.oas.models.media.EmailSchema;
 import io.swagger.v3.oas.models.media.IntegerSchema;
+import io.swagger.v3.oas.models.media.MapSchema;
 import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.PasswordSchema;
@@ -17,6 +19,8 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.media.UUIDSchema;
 import java.lang.reflect.Array;
+import java.lang.reflect.Field;
+import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.OffsetDateTime;
@@ -24,6 +28,7 @@ import java.time.temporal.ChronoUnit;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
+import java.util.Map.Entry;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.hadoop.api.WriteSupport;
 import org.apache.parquet.io.InvalidRecordException;
@@ -127,6 +132,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
         @SuppressWarnings("unchecked")
         MessageWriter(ObjectSchema objSchema, GroupType schema) {
+
             this.messageObjectSchema = objSchema;
             int fieldsSize = messageObjectSchema.getProperties().entrySet().size();
             fieldWriters = (FieldWriter[]) Array.newInstance(FieldWriter.class, fieldsSize);
@@ -156,6 +162,33 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
         private ArrayWriter CreateArrayWriter(Schema field) {
             FieldWriter itemWriter = createWriter(((ArraySchema) field).getItems(), null);
             return new ArrayWriter(itemWriter);
+        }
+
+        private MapWriter CreateMapWrite(Schema field, Type type) {
+
+            StringSchema keySchema = new StringSchema();
+            FieldWriter keyWriter = createWriter(keySchema, null); // with OPAI map always have string keys
+            FieldWriter valueWriter;
+            keyWriter.setFieldName("key");
+            keyWriter.setIndex(0);
+
+            Schema valueSchema = (Schema) field.getAdditionalProperties();
+
+            // we will assume that we won't get a "Free-Form Objects"
+            if (valueSchema instanceof ObjectSchema) {
+                Type innerType = type
+                        .asGroupType()
+                        .getType("key_value")
+                        .asGroupType()
+                        .getType("value");
+                valueWriter = createWriter(valueSchema, innerType);
+            } else {
+                valueWriter = createWriter(valueSchema, type);
+            }
+
+            valueWriter.setIndex(1);
+            valueWriter.setFieldName("value");
+            return new MapWriter(keyWriter, valueWriter);
         }
 
         private FieldWriter createWriter(Schema field, Type type) {
@@ -204,7 +237,10 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                 return CreateArrayWriter(field);
             } else if (field instanceof ObjectSchema) {
                 return CreateObjectWriter(field, type);
-            } else {
+            } else if (field instanceof MapSchema) {
+                return CreateMapWrite(field, type);
+            }
+            else {
                 //todo: all other cases
                 return unknownType(field); //should not be executed, always throws exception.
             }
@@ -257,14 +293,21 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
     class StringWriter extends FieldWriter {
         @Override
         final void writeRawValue(Object value) {
-            JsonNode node = (JsonNode) value;
 
-            if (node.isTextual()) {
-                Binary binaryString = Binary.fromString(node.asText());
-                recordConsumer.addBinary(binaryString);
+            if (value instanceof JsonNode) {
+                JsonNode node = (JsonNode) value;
+
+                if (node.isTextual()) {
+                    Binary binaryString = Binary.fromString(node.asText());
+                    recordConsumer.addBinary(binaryString);
+                } else {
+                    LOG.error("Type {} not expected in {}", StringWriter.class.getName(), node.getNodeType());
+                }
             } else {
-                LOG.error("Type {} not expected in {}", StringWriter.class.getName(), node.getNodeType());
+                String strValue = (String) value;
+                recordConsumer.addBinary(Binary.fromString(strValue));
             }
+
         }
     }
 
@@ -393,6 +436,53 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
             recordConsumer.endGroup();
             recordConsumer.endField(fieldName, index);
+        }
+    }
+
+    class MapWriter extends FieldWriter {
+        private final FieldWriter keyWriter;
+        private final FieldWriter valueWriter;
+
+        public MapWriter(FieldWriter keyWriter, FieldWriter valueWriter) {
+            super();
+            this.keyWriter = keyWriter;
+            this.valueWriter = valueWriter;
+        }
+
+        @Override
+        final void writeRawValue(Object value) {
+
+            JsonNode node = (JsonNode) value;
+
+            if (node.isMissingNode() || node instanceof NullNode) {
+                return;
+            }
+
+            recordConsumer.startGroup();
+
+            recordConsumer.startField("key_value", 0); // This is the wrapper group for the map field
+
+            for (Iterator<Entry<String, JsonNode>> it = node.fields(); it.hasNext(); ) {
+                Entry<String, JsonNode> field = it.next();
+
+                String mapKey = field.getKey();
+                JsonNode mapValue = field.getValue();
+
+                recordConsumer.startGroup();
+
+                //todo: remove me
+                LOG.debug("KEY {}", mapKey);
+
+                keyWriter.writeField(mapKey);
+                valueWriter.writeField(mapValue);
+
+                recordConsumer.endGroup();
+
+            }
+
+            recordConsumer.endField("key_value", 0);
+
+            recordConsumer.endGroup();
         }
     }
 

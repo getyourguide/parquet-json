@@ -4,12 +4,12 @@ info:
   description: Test schemas for parquet-json
   version: 1.0.0
 servers:
-  - url: 'https://api.example.com'
+  - url: 'https://getyourguide.com'
 paths: {}
 components:
   schemas:
     TestPrimitives:
-      title: "TestPrimitives"
+      title: TestPrimitives
       type: object
       properties:
         key_string:
@@ -43,7 +43,7 @@ components:
           format: date-time
           nullable: true
     TestArraysPrimitives:
-      title: "TestArraysPrimitives"
+      title: TestArraysPrimitives
       type: object
       properties:
         array_string:
@@ -63,8 +63,27 @@ components:
           items:
             type: boolean
             nullable: true
+    TestArraysOfObjects:
+      title: "TestArraysOfObjects"
+      type: object
+      properties:
+        array_key:
+          type: array
+          items:
+            type: object
+            properties:
+              key_a:
+                type: string
+              key_b:
+                type: string
+      example:
+        array_key:
+          - key_a: "hello"
+            key_b: "goodbye"
+          - key_a: "bonjour"
+            key_b: "aurevoir"
     TestNestedStructure:
-      title: "TestNestedStructure"
+      title: TestNestedStructure
       type: object
       properties:
         simple_key:
@@ -72,7 +91,7 @@ components:
           nullable: true
         simple_nested:
           type: object
-          title: "simple_nested"
+          title: simple_nested
           properties:
             key1:
               type: string
@@ -82,7 +101,7 @@ components:
               items:
                 type: integer
     TestDeeperNestedStructure:
-      title: "TestDeeperNestedStructure"
+      title: TestDeeperNestedStructure
       type: object
       properties:
         1st_level_key1:
@@ -103,3 +122,45 @@ components:
             key2:
               type: string
               nullable: true
+      example:
+        1st_level_key1: "Hello"
+        1st_level_key_nested:
+          key1:
+            key1_key1: "Hallo!"
+            key1_key2: null
+          key2: "Bonjour"
+    TestMapStructure:
+      title: TestMapStructure
+      type: object
+      properties:
+        map_key:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: integer
+      example:
+        map_key:
+          key1: [1, 2, 3]
+          key2: [4, 5, 6]
+    TestMapStructureofObject:
+      title: TestMapStructureofObject
+      type: object
+      properties:
+        map_key:
+          type: object
+          additionalProperties:
+            type: object
+            properties:
+              name:
+                type: string
+              text:
+                type: string
+      example:
+        map_key:
+          en:
+            name: "english"
+            text: "hello"
+          de:
+            name: "german"
+            text: "hallo"

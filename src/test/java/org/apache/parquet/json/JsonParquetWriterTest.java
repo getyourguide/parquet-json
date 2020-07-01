@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ObjectSchema;
+import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.parser.OpenAPIV3Parser;
 import java.io.File;
 import java.io.IOException;
@@ -14,7 +15,7 @@ import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.junit.Test;
 
-public class JsonParquetWriterTest {
+public class JsonParquetWriterTest extends JsonParquetTest{
 
     @Test
     public void testWriteSimpleFile() throws Exception {
@@ -135,6 +136,44 @@ public class JsonParquetWriterTest {
         writer.close();
 
         File inFile = new File("deep_nested.parquet");
+
+        assertTrue(inFile.exists());
+
+    }
+
+    @Test
+    public void testWriteMap() throws Exception {
+        String TypeName = "TestMapStructure";
+        JsonNode payload = getExample(TypeName);
+        Schema schema = getSchema(TypeName);
+        Path path = new Path("./map.parquet");
+
+        ParquetWriter<JsonNode> writer =
+                new JsonParquetWriter(path, (ObjectSchema) schema);
+
+        writer.write(payload);
+        writer.close();
+
+        File inFile = new File("map.parquet");
+
+        assertTrue(inFile.exists());
+
+    }
+
+    @Test
+    public void testWriteMapOfObjects() throws Exception {
+        String TypeName = "TestMapStructureofObject";
+        JsonNode payload = getExample(TypeName);
+        Schema schema = getSchema(TypeName);
+        Path path = new Path("./map_obj.parquet");
+
+        ParquetWriter<JsonNode> writer =
+                new JsonParquetWriter(path, (ObjectSchema) schema);
+
+        writer.write(payload);
+        writer.close();
+
+        File inFile = new File("map_obj.parquet");
 
         assertTrue(inFile.exists());
 

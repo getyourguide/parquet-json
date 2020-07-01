@@ -2,6 +2,7 @@ package org.apache.parquet.json;
 
 import static org.apache.parquet.schema.LogicalTypeAnnotation.dateType;
 import static org.apache.parquet.schema.LogicalTypeAnnotation.listType;
+import static org.apache.parquet.schema.LogicalTypeAnnotation.mapType;
 import static org.apache.parquet.schema.LogicalTypeAnnotation.stringType;
 import static org.apache.parquet.schema.LogicalTypeAnnotation.timestampType;
 import static org.apache.parquet.schema.PrimitiveType.PrimitiveTypeName.BINARY;
@@ -18,6 +19,7 @@ import io.swagger.v3.oas.models.media.DateSchema;
 import io.swagger.v3.oas.models.media.DateTimeSchema;
 import io.swagger.v3.oas.models.media.EmailSchema;
 import io.swagger.v3.oas.models.media.IntegerSchema;
+import io.swagger.v3.oas.models.media.MapSchema;
 import io.swagger.v3.oas.models.media.NumberSchema;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.oas.models.media.PasswordSchema;
@@ -25,6 +27,7 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.media.UUIDSchema;
 import java.util.Map;
+import org.apache.parquet.schema.InvalidSchemaException;
 import org.apache.parquet.schema.LogicalTypeAnnotation;
 import org.apache.parquet.schema.LogicalTypeAnnotation.TimeUnit;
 import org.apache.parquet.schema.MessageType;
@@ -42,6 +45,11 @@ public class JsonSchemaConverter {
     private static final Logger LOG = LoggerFactory.getLogger(JsonSchemaConverter.class);
 
     public JsonSchemaConverter() {
+    }
+
+    private <T> GroupBuilder<T> unsupportedSchema(Schema schema) {
+        String exceptionMsg = "Unsupported type "+schema.getType();
+        throw new InvalidSchemaException(exceptionMsg);
     }
 
     public MessageType convert(ObjectSchema jsonClass) {
@@ -86,11 +94,13 @@ public class JsonSchemaConverter {
 
     private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addField(Schema descriptor, final GroupBuilder<T> builder) {
 
+        if (descriptor instanceof MapSchema) {
+           return addMapField(descriptor, builder);
+        }
+
         if (descriptor instanceof ObjectSchema) {
             return addObjectField((ObjectSchema) descriptor, builder);
         }
-
-        ParquetType parquetType = getParquetType(descriptor);
 
         if (descriptor instanceof ArraySchema) {
             Type.Repetition nullableField = Repetition.REQUIRED;
@@ -104,15 +114,49 @@ public class JsonSchemaConverter {
 
             nullableItems = getRepetition(((ArraySchema) descriptor).getItems());
 
-            return addRepeatedPrimitive(parquetType.primitiveType,
-                    parquetType.logicalTypeAnnotation,
-                    nullableField,
-                    nullableItems,
-                    builder);
+            if (isPrimitiveType(((ArraySchema) descriptor).getItems())) {
+                ParquetType parquetType = getParquetType(descriptor);
+
+                return addRepeatedPrimitive(parquetType.primitiveType,
+                        parquetType.logicalTypeAnnotation,
+                        nullableField,
+                        nullableItems,
+                        builder);
+            } else {
+                return addRepeatedObject(((ArraySchema) descriptor).getItems(), builder);
+            }
         }
 
+        ParquetType parquetType = getParquetType(descriptor);
         return builder.primitive(parquetType.primitiveType, getRepetition(descriptor)).as(parquetType.logicalTypeAnnotation);
 
+    }
+    private <T> GroupBuilder<GroupBuilder<T>> addMapField(Schema descriptor, final GroupBuilder<T> builder) {
+        if (descriptor.getAdditionalProperties() instanceof Boolean) {
+            // Free-Form Objects are not supported
+            return unsupportedSchema((Schema) descriptor.getAdditionalProperties());
+        } else if (descriptor.getAdditionalProperties() instanceof Schema) {
+            Schema mapValueSchema = (Schema) descriptor.getAdditionalProperties();
+
+            GroupBuilder<GroupBuilder<GroupBuilder<T>>> group = builder
+                    .group(getRepetition(descriptor)).as(mapType())
+                    .group(Type.Repetition.REPEATED) // key_value wrapper
+                    .primitive(BINARY, Type.Repetition.REQUIRED).as(stringType()).named("key"); // keys are always string in OPAI 3.0.x
+
+            return addField(mapValueSchema, group).named("value")
+                    .named("key_value");
+
+        } else {
+            return unsupportedSchema((Schema) descriptor.getAdditionalProperties());
+        }
+    }
+
+    private <T> GroupBuilder<GroupBuilder<T>> addRepeatedObject(Schema schema, final GroupBuilder<T> builder) {
+        GroupBuilder<GroupBuilder<GroupBuilder<T>>> group = builder
+                .group(Repetition.OPTIONAL).as(listType()) //fix me
+                .group(Repetition.REPEATED);
+
+         return addField(schema, group).named("element").named("list");
     }
 
     private <T> Builder<? extends Builder<?, GroupBuilder<T>>, GroupBuilder<T>> addRepeatedPrimitive(PrimitiveTypeName primitiveType,
@@ -134,6 +178,15 @@ public class JsonSchemaConverter {
         return group;
     }
 
+    private Boolean isPrimitiveType(Schema fieldSchema) {
+        if (fieldSchema instanceof ObjectSchema
+                || fieldSchema instanceof ArraySchema
+                || fieldSchema instanceof MapSchema) {
+            return false;
+        }
+        return true;
+    }
+
     private ParquetType getParquetType(Schema fieldSchema) {
 
         if (fieldSchema instanceof StringSchema || fieldSchema instanceof PasswordSchema || fieldSchema instanceof EmailSchema) {
@@ -150,7 +203,6 @@ public class JsonSchemaConverter {
 
             if (fieldSchema.getFormat() == null) {
                 // If no format specified, we use int32
-                //todo: document
                 return ParquetType.of(INT32);
             }
 
@@ -173,7 +225,6 @@ public class JsonSchemaConverter {
 
             if (fieldSchema.getFormat() == null) {
                 // If no format specified, we use float
-                //todo: document
                 return ParquetType.of(FLOAT);
             }
 

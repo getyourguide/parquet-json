@@ -2,6 +2,8 @@ package org.apache.parquet.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ArrayNode;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.media.ObjectSchema;
 import io.swagger.v3.parser.OpenAPIV3Parser;
@@ -10,13 +12,14 @@ import java.util.Objects;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.io.RecordConsumerLoggingWrapper;
 import org.apache.parquet.io.api.Binary;
+import org.junit.BeforeClass;
 import org.junit.Test;
 import org.mockito.InOrder;
 import org.mockito.Mockito;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JsonWriteSupportTest {
+public class JsonWriteSupportTest extends JsonParquetTest {
     private static final Logger LOG = LoggerFactory.getLogger(JsonWriteSupportTest.class);
 
     @Test
@@ -153,6 +156,8 @@ public class JsonWriteSupportTest {
         Mockito.verifyNoMoreInteractions(readConsumerMock);
     }
 
+    //todo: TestArraysOfObjects
+
     @Test
     public void test1stLevelNestedStructure() throws Exception {
         String TypeName = "TestNestedStructure";
@@ -251,7 +256,6 @@ public class JsonWriteSupportTest {
         JsonNode payload = mapper.readTree(json);
 
         support.write(payload);
-        System.out.println(readConsumerMock.toString());
 
         InOrder inOrder = Mockito.inOrder(readConsumerMock);
 
@@ -287,6 +291,180 @@ public class JsonWriteSupportTest {
         inOrder.verify(readConsumerMock).endMessage();
 
         Mockito.verifyNoMoreInteractions(readConsumerMock);
+
+    }
+
+    @Test
+    public void testMapSimpleStructure() throws Exception {
+        String TypeName = "TestMapStructure";
+
+        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
+
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+
+        support.write(getExample(TypeName));
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+        inOrder.verify(readConsumerMock).startMessage();
+        inOrder.verify(readConsumerMock).startField("map_key", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key_value", 0);
+
+        // key1 group
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("key", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("key1"));
+        inOrder.verify(readConsumerMock).endField("key", 0);
+        inOrder.verify(readConsumerMock).startField("value", 1);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(1);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(2);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(3);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("value", 1);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        // key2 group
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("key", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("key2"));
+        inOrder.verify(readConsumerMock).endField("key", 0);
+        inOrder.verify(readConsumerMock).startField("value", 1);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(4);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(5);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addInteger(6);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("value", 1);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("key_value", 0);
+
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("map_key", 0);
+        inOrder.verify(readConsumerMock).endMessage();
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+
+
+    }
+
+    @Test
+    public void testMapObjectStructure() throws Exception {
+        String TypeName = "TestMapStructureofObject";
+
+        RecordConsumerLoggingWrapper readConsumerMock = Mockito.mock(RecordConsumerLoggingWrapper.class);
+
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName));
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+
+        support.write(getExample(TypeName));
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+
+        inOrder.verify(readConsumerMock).startField("map_key", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key_value", 0);
+        // key en
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("en"));
+        inOrder.verify(readConsumerMock).endField("key", 0);
+
+        inOrder.verify(readConsumerMock).startField("value", 1);
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("name", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("english"));
+        inOrder.verify(readConsumerMock).endField("name", 0);
+
+        inOrder.verify(readConsumerMock).startField("text", 1);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("hello"));
+        inOrder.verify(readConsumerMock).endField("text", 1);
+
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("value", 1);
+
+        inOrder.verify(readConsumerMock).endGroup();
+
+        // key de
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("de"));
+        inOrder.verify(readConsumerMock).endField("key", 0);
+
+        inOrder.verify(readConsumerMock).startField("value", 1);
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("name", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("german"));
+        inOrder.verify(readConsumerMock).endField("name", 0);
+
+        inOrder.verify(readConsumerMock).startField("text", 1);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("hallo"));
+        inOrder.verify(readConsumerMock).endField("text", 1);
+
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("value", 1);
+
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("key_value", 0);
+
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("map_key", 0);
+        inOrder.verify(readConsumerMock).endMessage();
+
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+
 
     }
 
