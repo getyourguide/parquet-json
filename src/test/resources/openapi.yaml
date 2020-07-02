@@ -42,6 +42,10 @@ components:
           type: string
           format: date-time
           nullable: true
+        key_bytes_from_string:
+          type: string
+          format: binary
+          nullable: true
       example:
         key_string: hello
         key_int32: 32
@@ -51,6 +55,7 @@ components:
         is_true: true
         date: '2020-06-20'
         datetime: '2020-06-20T10:10:10.000Z'
+        key_bytes_from_string: "SGVsbG8gd29ybGQh"
     TestArraysPrimitives:
       title: TestArraysPrimitives
       type: object

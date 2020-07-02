@@ -4,8 +4,8 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
-import io.swagger.util.Json;
 import io.swagger.v3.oas.models.media.ArraySchema;
+import io.swagger.v3.oas.models.media.BinarySchema;
 import io.swagger.v3.oas.models.media.BooleanSchema;
 import io.swagger.v3.oas.models.media.DateSchema;
 import io.swagger.v3.oas.models.media.DateTimeSchema;
@@ -19,12 +19,12 @@ import io.swagger.v3.oas.models.media.Schema;
 import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.media.UUIDSchema;
 import java.lang.reflect.Array;
-import java.lang.reflect.Field;
 import java.nio.charset.StandardCharsets;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
+import java.util.Base64;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -215,6 +215,8 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
             if (field instanceof StringSchema || field instanceof PasswordSchema || field instanceof EmailSchema) {
                 return new StringWriter();
+            } else if (field instanceof BinarySchema) {
+                return new BinaryWriter();
             } else if (field instanceof UUIDSchema) {
                 //todo: fix once PARQUET-1827 is released
                 return new StringWriter();
@@ -306,6 +308,22 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                 fieldIndex++; //todo: compute some index based on schema
 
             }
+        }
+
+    }
+
+    class BinaryWriter extends FieldWriter {
+        @Override
+        final void writeRawValue(Object value) {
+
+                JsonNode node = (JsonNode) value;
+                byte[] data;
+                if (node.isTextual()) {
+                    data = Base64.getDecoder().decode(node.asText().getBytes(StandardCharsets.UTF_8));
+                    recordConsumer.addBinary(Binary.fromReusedByteArray(data));
+                } else {
+                    LOG.error("Type {} not expected in {}", StringWriter.class.getName(), node.getNodeType());
+                }
         }
 
     }

@@ -6,7 +6,7 @@ Apache Parquet JSON integration
 This project is a spin-off of the [parquet-mr](https://github.com/apache/parquet-mr) project.
 We propose to implement a converter to write JsonNode objects to parquet directly without
 intermediately format. To do so, this project implements the `WriteSupport` interface for Jackson
-`JsonNode` objects.
+`JsonNode` objects, and relies on a OpenAPI based schema definition.
 
 This project is mostly based on the ProtocolBuffer and Avro converters implementations.
 
@@ -25,8 +25,8 @@ This project is mostly based on the ProtocolBuffer and Avro converters implement
 | string       | password       | String    | logical type               |
 | string       | email          | String    | logical type               |
 | string       | UUID           | String    | to be improved             |
-| string       | byte           | String    | to be improved             |
-| string       | binary         | binary    | not implemented            |
+| string       | byte           | String    | base64 encoded bytes string|
+| string       | binary         | binary    | not supported              |
 | string       | date           | date      | logical type               |
 | string       | date-time      | timestamp | MILLIS precision           |
 | boolean      | -              | boolean   |                            |

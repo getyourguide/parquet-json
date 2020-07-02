@@ -58,6 +58,7 @@ public class JsonSchemaConverterTest {
                         "  optional BOOLEAN is_true;\n" +
                         "  optional INT32 date (DATE);\n" + //will have annotation
                         "  optional INT64 datetime (TIMESTAMP(MILLIS,true));\n" +
+                        "  optional BINARY key_bytes_from_string;\n"+
                         "}";
 
         testConversion(TypeName, expectedSchema);

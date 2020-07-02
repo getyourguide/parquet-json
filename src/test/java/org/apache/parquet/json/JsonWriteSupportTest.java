@@ -69,6 +69,10 @@ public class JsonWriteSupportTest extends JsonParquetTest {
         inOrder.verify(readConsumerMock).addLong(1592647810000L);
         inOrder.verify(readConsumerMock).endField("datetime", 7);
 
+        inOrder.verify(readConsumerMock).startField("key_bytes_from_string", 8);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("Hello world!")); // UTF8 is implicit in fromString
+        inOrder.verify(readConsumerMock).endField("key_bytes_from_string", 8);
+
         inOrder.verify(readConsumerMock).endMessage();
         Mockito.verifyNoMoreInteractions(readConsumerMock);
     }
