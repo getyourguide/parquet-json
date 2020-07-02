@@ -97,6 +97,22 @@ components:
             key_b: "goodbye"
           - key_a: "bonjour"
             key_b: "aurevoir"
+    TestArraysOfMaps:
+      title: "TestArraysOfMaps"
+      type: object
+      description: Arrays of maps support currently not implemented
+      properties:
+        array_of_map:
+          type: array
+          items:
+            type: object
+            additionalProperties:
+              type: string
+      example:
+        array_of_map:
+          - en: "english"
+          - fr: "français"
+          - de: "deutsch"
     TestNestedStructure:
       title: TestNestedStructure
       type: object

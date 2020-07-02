@@ -120,7 +120,58 @@ public class JsonWriteSupportTest extends JsonParquetTest {
         Mockito.verifyNoMoreInteractions(readConsumerMock);
     }
 
-    //todo: TestArraysOfObjects
+    @Test
+    public void testArraysOfObjects() throws Exception {
+        String TypeName = "TestArraysOfObjects";
+
+        JsonWriteSupport support = getWriter(TypeName);
+        support.write(getExample(TypeName));
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+
+        inOrder.verify(readConsumerMock).startField("array_key", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        // first element
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("key_a", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("hello"));
+        inOrder.verify(readConsumerMock).endField("key_a", 0);
+        inOrder.verify(readConsumerMock).startField("key_b", 1);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("goodbye"));
+        inOrder.verify(readConsumerMock).endField("key_b", 1);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        // second element
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("key_a", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("bonjour"));
+        inOrder.verify(readConsumerMock).endField("key_a", 0);
+        inOrder.verify(readConsumerMock).startField("key_b", 1);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("aurevoir"));
+        inOrder.verify(readConsumerMock).endField("key_b", 1);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("array_key", 0);
+
+        inOrder.verify(readConsumerMock).endMessage();
+
+    }
 
     @Test
     public void test1stLevelNestedStructure() throws Exception {

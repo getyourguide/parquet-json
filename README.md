@@ -30,11 +30,11 @@ This project is mostly based on the ProtocolBuffer and Avro converters implement
 | string       | date           | date      | logical type               |
 | string       | date-time      | timestamp | MILLIS precision           |
 | boolean      | -              | boolean   |                            |
-| arrays       | -              | list      | logical type, array of objects not implemented|
+| arrays       | -              | list      | logical type, array of maps not implemented|
 | object       | -              | GroupType |                            |
 | oneOf        | -              | Union     | not implemented            |
 | allOf        | -              |           | not supported              |
-| map          | -              | map       | key as string only, "free form" object and "Fixed Keys" not supported         |
+| map          | -              | map       | keys as string only, "free form" objects and "Fixed Keys" not supported         |
 | enum         | -              | enum      | only string type supported |
 
 ## How to use the converter

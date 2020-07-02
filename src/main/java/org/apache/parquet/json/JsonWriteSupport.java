@@ -159,8 +159,28 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             return new MessageWriter((ObjectSchema) field, type.asGroupType());
         }
 
-        private ArrayWriter CreateArrayWriter(Schema field) {
-            FieldWriter itemWriter = createWriter(((ArraySchema) field).getItems(), null);
+        private ArrayWriter CreateArrayWriter(Schema field, Type type) {
+            FieldWriter itemWriter;
+
+            Schema itemSchema = ((ArraySchema) field).getItems();
+
+            // Array of objects
+            if (itemSchema instanceof ObjectSchema) {
+                Type innerType = type
+                        .asGroupType()
+                        .getType("list")
+                        .asGroupType()
+                        .getType("element");
+                itemWriter = createWriter(itemSchema, innerType);
+            } else if (itemSchema instanceof MapSchema) {
+                LOG.error("Array of maps is not supported");
+                return (ArrayWriter) unknownType(itemSchema);
+            }
+            else {
+                // Array of primitive type
+                itemWriter = createWriter(itemSchema, type);
+            }
+
             return new ArrayWriter(itemWriter);
         }
 
@@ -234,7 +254,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                 }
 
             } else if (field instanceof ArraySchema) {
-                return CreateArrayWriter(field);
+                return CreateArrayWriter(field, type);
             } else if (field instanceof ObjectSchema) {
                 return CreateObjectWriter(field, type);
             } else if (field instanceof MapSchema) {
