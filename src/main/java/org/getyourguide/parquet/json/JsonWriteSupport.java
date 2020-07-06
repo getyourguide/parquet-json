@@ -82,7 +82,8 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
     public WriteContext init(Configuration configuration) {
         MessageType rootSchema = new JsonSchemaConverter().convert(objectSchema);
         this.messageWriter = new MessageWriter(objectSchema, rootSchema);
-        Map<String, String> extraMetaData = new HashMap<String, String>();
+        Map<String, String> extraMetaData = new HashMap<>();
+        extraMetaData.put("writer.model.author","GetYourGuide");
         return new WriteContext(rootSchema, extraMetaData);
     }
 

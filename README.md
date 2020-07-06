@@ -39,3 +39,67 @@ This project is mostly based on the ProtocolBuffer and Avro converters implement
 
 ## How to use the converter
 
+Given for example a schema definition in a file `openapi.yaml` as:
+
+```yaml
+openapi: 3.0.1
+info:
+  title: Some schemas
+  description: Some schemas for parquet-json usage example
+  version: 1.0.0
+servers:
+  - url: 'https://getyourguide.com'
+paths: {}
+components:
+  schemas:
+    MyObject:
+      title: MyObject
+      type: object
+      properties:
+        key_string:
+          type: string
+          nullable: false
+          default: 'a string'
+        key_int32:
+          type: integer
+          format: int32
+          nullable: true
+          default: 1
+        is_true:
+          type: boolean
+          nullable: true
+          default: true
+```
+
+the converter can be used to write a parquet file on the local FS with:
+
+```java
+    Configuration conf = new Configuration();
+    conf.set("fs.file.impl", org.apache.hadoop.fs.LocalFileSystem.class.getName());
+
+    OpenAPI openAPI = new OpenAPIV3Parser().read("openapi.yaml");
+
+    ObjectSchema schema = (ObjectSchema) openAPI.getComponents().getSchemas().get("MyObject");
+
+    ObjectMapper mapper = new ObjectMapper();
+
+    String output = "./example.parquet";
+    Path path = new Path(output);
+
+    ParquetWriter<JsonNode> writer =
+        JsonParquetWriter.Builder(path)
+            .withSchema(schema)
+            .withConf(conf)
+            .withCompressionCodec(CompressionCodecName.SNAPPY)
+            .withDictionaryEncoding(true)
+            .withPageSize(1024 * 1024)
+            .build();
+
+    String json =
+        "{\"key_string\":\"hello\",\"key_int32\":32,\"is_true\":true}";
+    JsonNode payload = mapper.readTree(json);
+    
+    writer.write(payload);
+    
+    writer.close();
+```

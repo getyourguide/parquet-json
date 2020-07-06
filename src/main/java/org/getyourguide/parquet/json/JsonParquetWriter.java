@@ -34,8 +34,8 @@ public class JsonParquetWriter<T> extends ParquetWriter<T> {
 
     private static WriteSupport<JsonNode> writeSupport(Configuration conf,
                                                        ObjectSchema schema,
-                                                       Boolean writeDefaultValue,
-                                                       Boolean writeNullAsDefault) {
+                                                       boolean writeDefaultValue,
+                                                       boolean writeNullAsDefault) {
         return new JsonWriteSupport(schema, writeDefaultValue, writeNullAsDefault);
     }
 
@@ -46,8 +46,8 @@ public class JsonParquetWriter<T> extends ParquetWriter<T> {
     public static class Builder<JsonNode> extends ParquetWriter.Builder<JsonNode, Builder<JsonNode>> {
 
         private ObjectSchema schema = null;
-        private Boolean writeDefaultValue;
-        private Boolean writeNullAsDefault;
+        private boolean writeDefaultValue;
+        private boolean writeNullAsDefault;
 
         protected Builder(Path path) {
             super(path);
