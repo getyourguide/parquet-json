@@ -74,7 +74,7 @@ public class JsonSchemaConverterTest {
                         "    required binary element (STRING);\n"+
                         "    }\n"+
                         "  }\n"+
-                        "  required group array_int (LIST) {\n"+
+                        "  optional group array_int (LIST) {\n"+
                         "  repeated group list {\n"+
                         "    optional INT64 element;\n"+
                         "    }\n"+

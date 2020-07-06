@@ -80,6 +80,7 @@ components:
           items:
             type: integer
             format: int64
+            nullable: true
         array_bool:
           type: array
           nullable: true
