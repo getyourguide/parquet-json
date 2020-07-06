@@ -1,4 +1,4 @@
-package org.apache.parquet.json;
+package org.getyourguide.parquet.json;
 
 import static org.junit.Assert.assertEquals;
 

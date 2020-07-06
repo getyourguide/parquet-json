@@ -1,4 +1,4 @@
-package org.apache.parquet.json;
+package org.getyourguide.parquet.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import io.swagger.v3.oas.models.media.ObjectSchema;

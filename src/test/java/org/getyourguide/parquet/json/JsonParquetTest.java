@@ -1,4 +1,4 @@
-package org.apache.parquet.json;
+package org.getyourguide.parquet.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.node.ArrayNode;
