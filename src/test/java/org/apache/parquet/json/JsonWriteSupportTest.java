@@ -1,5 +1,7 @@
 package org.apache.parquet.json;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.apache.hadoop.conf.Configuration;
 import org.apache.parquet.io.RecordConsumerLoggingWrapper;
 import org.apache.parquet.io.api.Binary;
@@ -78,6 +80,60 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     }
 
     @Test
+    public void testPrimitivesWithDefault() throws Exception {
+        String TypeName = "TestPrimitives";
+
+        ObjectMapper mapper = new ObjectMapper();
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName), true, false);
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+
+        String json = "\"{}\"";
+        JsonNode payload = mapper.readTree(json);
+
+        support.write(payload);
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+
+        inOrder.verify(readConsumerMock).startField("key_string", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("a string"));
+        inOrder.verify(readConsumerMock).endField("key_string", 0);
+
+        inOrder.verify(readConsumerMock).startField("key_int32", 1);
+        inOrder.verify(readConsumerMock).addInteger(1);
+        inOrder.verify(readConsumerMock).endField("key_int32", 1);
+
+        inOrder.verify(readConsumerMock).startField("key_int64", 2);
+        inOrder.verify(readConsumerMock).addLong(1);
+        inOrder.verify(readConsumerMock).endField("key_int64", 2);
+
+        inOrder.verify(readConsumerMock).startField("key_float", 3);
+        inOrder.verify(readConsumerMock).addFloat((float) 1.1);
+        inOrder.verify(readConsumerMock).endField("key_float", 3);
+
+        inOrder.verify(readConsumerMock).startField("key_double", 4);
+        inOrder.verify(readConsumerMock).addDouble(1.101);
+        inOrder.verify(readConsumerMock).endField("key_double", 4);
+
+        inOrder.verify(readConsumerMock).startField("is_true", 5);
+        inOrder.verify(readConsumerMock).addBoolean(true);
+        inOrder.verify(readConsumerMock).endField("is_true", 5);
+
+        inOrder.verify(readConsumerMock).startField("date", 6);
+        inOrder.verify(readConsumerMock).addInteger(18262);
+        inOrder.verify(readConsumerMock).endField("date", 6);
+
+        inOrder.verify(readConsumerMock).startField("datetime", 7);
+        inOrder.verify(readConsumerMock).addLong(1577840461000L);
+        inOrder.verify(readConsumerMock).endField("datetime", 7);
+
+        inOrder.verify(readConsumerMock).endMessage();
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+    }
+
+    @Test
     public void testArraysOfPrimitives() throws Exception {
         String TypeName = "TestArraysPrimitives";
 
@@ -123,6 +179,55 @@ public class JsonWriteSupportTest extends JsonParquetTest {
         inOrder.verify(readConsumerMock).endMessage();
         Mockito.verifyNoMoreInteractions(readConsumerMock);
     }
+
+    @Test
+    public void testArraysOfPrimitivesDefault() throws Exception {
+        String TypeName = "TestArraysPrimitives";
+        ObjectMapper mapper = new ObjectMapper();
+
+        JsonWriteSupport support = new JsonWriteSupport(getSchema(TypeName), true, false);
+        support.init(new Configuration());
+        support.prepareForWrite(readConsumerMock);
+
+        String json = "{\"array_string\": null, \"array_bool\": null}";
+        JsonNode payload = mapper.readTree(json);
+
+        support.write(payload);
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+
+        inOrder.verify(readConsumerMock).startField("array_int", 1);
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addLong(0);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addLong(1);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).addLong(2);
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("array_int", 1);
+
+        inOrder.verify(readConsumerMock).endMessage();
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+    }
+
 
     @Test
     public void testArraysOfObjects() throws Exception {

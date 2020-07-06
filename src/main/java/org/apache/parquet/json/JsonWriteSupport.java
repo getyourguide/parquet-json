@@ -1,6 +1,7 @@
 package org.apache.parquet.json;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.NullNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
@@ -20,11 +21,14 @@ import io.swagger.v3.oas.models.media.StringSchema;
 import io.swagger.v3.oas.models.media.UUIDSchema;
 import java.lang.reflect.Array;
 import java.nio.charset.StandardCharsets;
+import java.text.DateFormat;
+import java.text.SimpleDateFormat;
 import java.time.LocalDate;
 import java.time.Month;
 import java.time.OffsetDateTime;
 import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.Date;
 import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
@@ -46,10 +50,13 @@ import org.slf4j.LoggerFactory;
 public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
     private static final Logger LOG = LoggerFactory.getLogger(JsonWriteSupport.class);
+    private static boolean writeDefaultValue;
+    private static boolean writeNullAsDefault;
 
     private RecordConsumer recordConsumer;
     private ObjectSchema objectSchema;
     private MessageWriter messageWriter;
+
 
     public JsonWriteSupport() {
 
@@ -58,6 +65,13 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
     public JsonWriteSupport(ObjectSchema objSchema) {
         this.objectSchema = objSchema;
     }
+
+    public JsonWriteSupport(ObjectSchema objSchema, boolean writeDefaultValue, boolean writeNullAsDefault) {
+        JsonWriteSupport.writeDefaultValue = writeDefaultValue;
+        JsonWriteSupport.writeNullAsDefault = writeNullAsDefault;
+        this.objectSchema = objSchema;
+    }
+
 
     @Override
     public String getName() {
@@ -291,21 +305,57 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             for (Map.Entry<String, Schema> field : messageObjectSchema.getProperties().entrySet()) {
 
                 String lkpFieldName = field.getKey();
+                Schema valueSchema = field.getValue();
+                JsonNode node;
 
                 LOG.debug("Looking for {}", lkpFieldName);
 
                 if (pb.has(lkpFieldName)) {
-                    JsonNode node = pb.get(lkpFieldName);
-                    LOG.debug(lkpFieldName + " is " + node.toPrettyString());
+                    node = pb.get(lkpFieldName);
+                } else {
+                    // the field lkpFieldName is missing in the payload, if specified
+                    // we write the default value instead (if there is any)
+                    if (writeDefaultValue) {
+                        if(valueSchema.getDefault() != null) {
+                            Object value = valueSchema.getDefault();
+                            ObjectMapper mapper = new ObjectMapper();
 
-                    if (!node.isMissingNode()) {
-                        LOG.debug("Writing field {}", lkpFieldName);
-                        fieldWriters[fieldIndex].writeField(node);
+                            LOG.debug("Default for {} is {}", lkpFieldName, value);
+
+                            LOG.debug("Default value type: {}", value.getClass().getCanonicalName());
+
+                            switch (value.getClass().getCanonicalName()) {
+                                case "java.util.Date":
+                                    DateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd");
+                                    node = mapper.convertValue(dateFormat.format((Date) value), JsonNode.class);
+                                    break;
+                                case "java.time.OffsetDateTime":
+                                    node = mapper.convertValue(value.toString(), JsonNode.class);
+                                    break;
+                                default:
+                                    node = mapper.convertValue(value, JsonNode.class);
+                            }
+
+                        } else {
+                            fieldIndex++;
+                            continue;
+                        }
+                    } else {
+                        fieldIndex++;
+                        continue;
                     }
                 }
 
-                // todo: decide if we write default value instead, in which case we need to call the
-                fieldIndex++; //todo: compute some index based on schema
+                // if the value is NULL, and if specified we replace with default
+                // if default is also NULL we carry on
+                if (node instanceof NullNode && writeNullAsDefault) {
+                    if(valueSchema.getDefault() != null) {
+                        node = (JsonNode) valueSchema.getDefault();
+                    }
+                }
+
+                fieldWriters[fieldIndex].writeField(node);
+                fieldIndex++;
 
             }
         }
@@ -322,7 +372,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                     data = Base64.getDecoder().decode(node.asText().getBytes(StandardCharsets.UTF_8));
                     recordConsumer.addBinary(Binary.fromReusedByteArray(data));
                 } else {
-                    LOG.error("Type {} not expected in {}", StringWriter.class.getName(), node.getNodeType());
+                    LOG.error("{} : {} type not expected", BinaryWriter.class.getCanonicalName(), value.getClass().getName());
                 }
         }
 
@@ -339,7 +389,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                     Binary binaryString = Binary.fromString(node.asText());
                     recordConsumer.addBinary(binaryString);
                 } else {
-                    LOG.error("Type {} not expected in {}", StringWriter.class.getName(), node.getNodeType());
+                    LOG.error("{} : {} type not expected", StringWriter.class.getCanonicalName(), value.getClass().getName());
                 }
             } else {
                 String strValue = (String) value;
@@ -360,7 +410,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                 long noOfDaysBetween = ChronoUnit.DAYS.between(LocalDate.of(1970, Month.JANUARY, 1), ts);
                 recordConsumer.addInteger((int) noOfDaysBetween);
             } else {
-                LOG.error("Type {} not expected in {}", DateWriter.class.getName(), node.getNodeType());
+                LOG.error("{} : {} type not expected", DateWriter.class.getCanonicalName(), value.getClass().getName());
             }
         }
     }
@@ -374,7 +424,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                 OffsetDateTime ts = OffsetDateTime.parse(node.asText());
                 recordConsumer.addLong(ts.toInstant().toEpochMilli());
             } else {
-                LOG.error("Type {} not expected in {}", DateTimeWriter.class.getName(), node.getNodeType());
+                LOG.error("{} : {} type not expected", DateTimeWriter.class.getCanonicalName(), value.getClass().getName());
             }
         }
     }
@@ -387,7 +437,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             if (node.isInt()) {
                 recordConsumer.addInteger(node.asInt());
             } else {
-                LOG.error("Type {} not expected in {}", IntWriter.class.getName(), node.getNodeType());
+                LOG.error("{} : {} type not expected", IntWriter.class.getCanonicalName(), value.getClass().getName());
             }
         }
     }
@@ -400,7 +450,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             if (node.isNumber()) {
                 recordConsumer.addLong(node.asLong());
             } else {
-                LOG.error("Type {} not expected in {}", LongWriter.class.getName(), node.getNodeType());
+                LOG.error("{} : {} type not expected", LongWriter.class.getCanonicalName(), value.getClass().getName());
             }
         }
     }
@@ -413,7 +463,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             if (node.isBoolean()) {
                 recordConsumer.addBoolean(node.asBoolean());
             } else {
-                LOG.error("Type {} not expected in {}", BooleanWriter.class.getName(), node.getNodeType());
+                LOG.error("{} : {} type not expected", BooleanWriter.class.getCanonicalName(), value.getClass().getName());
             }
 
         }
@@ -449,6 +499,8 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
         @Override
         final void writeField(Object value) {
+
+            if (value instanceof NullNode) {return;}
 
             ArrayNode node = (ArrayNode) value;
 

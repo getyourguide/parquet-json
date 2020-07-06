@@ -15,33 +15,41 @@ components:
         key_string:
           type: string
           nullable: false
+          default: 'a string'
         key_int32:
           type: integer
           format: int32
           nullable: true
+          default: 1
         key_int64:
           type: integer
           format: int64
           nullable: true
+          default: 1
         key_float:
           type: number
           format: float
           nullable: true
+          default: 1.1
         key_double:
           type: number
           format: double
           nullable: true
+          default: 1.101
         is_true:
           type: boolean
           nullable: true
+          default: true
         date:
           type: string
           format: date
           nullable: true
+          default: "2020-01-01"
         datetime:
           type: string
           format: date-time
           nullable: true
+          default: "2020-01-01T01:01:01.000Z"
         key_bytes_from_string:
           type: string
           format: binary
@@ -67,10 +75,11 @@ components:
             type: string
         array_int:
           type: array
+          nullable: true
+          default: [0, 1, 2]
           items:
             type: integer
             format: int64
-            nullable: true
         array_bool:
           type: array
           nullable: true
