@@ -165,4 +165,17 @@ public class JsonSchemaConverterTest {
         testConversion(TypeName, expectedSchema);
     }
 
+    @Test
+    public void TestTestObjectNoType() throws Exception {
+        String TypeName = "TestObjectNoType";
+        String expectedSchema =
+            "message TestObjectNoType {\n"+
+                "  required group nested {\n"+
+                "    required binary key1 (STRING);\n"+
+                "  }\n"+
+                "}";
+
+        testConversion(TypeName, expectedSchema);
+    }
+
 }

@@ -272,13 +272,15 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
             } else if (field instanceof ArraySchema) {
                 return CreateArrayWriter(field, type);
-            } else if (field instanceof ObjectSchema) {
+            } else if (field instanceof ObjectSchema || field.getType() == null) {
+
+                field = JsonSchemaConverter.getObjectSchema(field);
+
                 return CreateObjectWriter(field, type);
             } else if (field instanceof MapSchema) {
                 return CreateMapWrite(field, type);
             }
             else {
-                //todo: all other cases
                 return unknownType(field); //should not be executed, always throws exception.
             }
 

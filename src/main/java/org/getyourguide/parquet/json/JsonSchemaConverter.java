@@ -98,7 +98,10 @@ public class JsonSchemaConverter {
            return addMapField(descriptor, builder);
         }
 
-        if (descriptor instanceof ObjectSchema) {
+        if (descriptor instanceof ObjectSchema || descriptor.getType() == null) {
+
+            descriptor = getObjectSchema(descriptor);
+
             return addObjectField((ObjectSchema) descriptor, builder);
         }
 
@@ -131,6 +134,21 @@ public class JsonSchemaConverter {
         return builder.primitive(parquetType.primitiveType, getRepetition(descriptor)).as(parquetType.logicalTypeAnnotation);
 
     }
+
+    static Schema getObjectSchema(Schema descriptor) {
+        if (descriptor.getType() == null) {
+            // In OpenAPI the type field for object is not a requirement (apparently)
+            // so we assume that a "schema" with no type is an object
+            Schema field = descriptor;
+            descriptor = new ObjectSchema();
+            descriptor.setType(field.getTitle());
+            descriptor.setProperties(field.getProperties());
+            descriptor.setAdditionalProperties(field.getAdditionalProperties());
+            descriptor.setName(field.getName());
+        }
+        return descriptor;
+    }
+
     private <T> GroupBuilder<GroupBuilder<T>> addMapField(Schema descriptor, final GroupBuilder<T> builder) {
         if (descriptor.getAdditionalProperties() instanceof Boolean) {
             // Free-Form Objects are not supported
