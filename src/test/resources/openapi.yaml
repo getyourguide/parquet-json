@@ -214,3 +214,15 @@ components:
           de:
             name: "german"
             text: "hallo"
+    TestObjectNoType:
+      title: "TestObjectNoType"
+      description: "OpenAPI doesn't require type == object for object but the parser we use will yield a schema with no type in that case"
+      type: object
+      properties:
+        nested:
+          properties:
+            key1:
+              type: string
+      example:
+        nested:
+          key1: "Hello World!"

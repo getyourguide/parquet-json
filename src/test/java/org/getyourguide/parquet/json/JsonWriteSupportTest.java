@@ -540,4 +540,30 @@ public class JsonWriteSupportTest extends JsonParquetTest {
         Mockito.verifyNoMoreInteractions(readConsumerMock);
     }
 
+    @Test
+    public void testObjectNoType() throws Exception {
+        String TypeName = "TestObjectNoType";
+
+        JsonWriteSupport support = getWriter(TypeName);
+        support.write(getExample(TypeName));
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+
+        inOrder.verify(readConsumerMock).startMessage();
+        inOrder.verify(readConsumerMock).startField("nested", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key1", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("Hello World!"));
+        inOrder.verify(readConsumerMock).endField("key1", 0);
+
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("nested", 0);
+        inOrder.verify(readConsumerMock).endMessage();
+
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+    }
+
 }
