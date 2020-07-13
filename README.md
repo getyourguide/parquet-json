@@ -103,3 +103,22 @@ the converter can be used to write a parquet file on the local FS with:
     
     writer.close();
 ```
+
+## Known limitations
+
+- Currently works only with schemas of type `OpenAPI` (https://github.com/swagger-api/swagger-parser/) and data payload of type `JsonNode` (Jackson library).
+- The schema must be fully resolved (no internal or external `ref`)
+- Union types (`oneOf`) not implemented yet
+- Readers (from Parquet to JsonNode/OpenAPI) are not implemented (we don't need this part here at GetYourGuide)
+
+## Contributing
+
+We welcome pull requests; if you are planning to perform bigger changes then it makes sense to file an issue first.
+
+## Security
+For sensitive security matters please contact [security@getyourguide.com](mailto:security@getyourguide.com).
+
+## Legal
+Copyright 2020 GetYourGuide GmbH.
+
+`parquet-json` is licensed under the Apache License, Version 2.0. See [LICENSE](LICENSE) for the full text.
