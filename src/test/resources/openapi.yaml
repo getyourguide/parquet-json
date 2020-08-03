@@ -226,3 +226,13 @@ components:
       example:
         nested:
           key1: "Hello World!"
+    NullInPayload:
+      title: "NullInPayload"
+      type: object
+      properties:
+        key1:
+          type: string
+        key2:
+          type: string
+      example:
+        key2: "hello"

@@ -9,13 +9,18 @@ import java.io.File;
 import org.apache.hadoop.fs.Path;
 import org.apache.parquet.hadoop.ParquetWriter;
 import org.junit.ClassRule;
+import org.junit.Rule;
 import org.junit.Test;
+import org.junit.rules.ExpectedException;
 import org.junit.rules.TemporaryFolder;
 
 public class JsonParquetWriterTest extends JsonParquetTest{
 
     @ClassRule
     public static TemporaryFolder folder = new TemporaryFolder();
+
+    @Rule
+    public ExpectedException exceptionRule = ExpectedException.none();
 
     private String getFullPath(String filename) {
         return folder.getRoot()+"/"+filename;
@@ -68,5 +73,12 @@ public class JsonParquetWriterTest extends JsonParquetTest{
     public void testWriteMapOfObjects() throws Exception {
         testFile("TestMapStructureofObject");
     }
+
+    @Test
+    public void testMissingInPayload() throws Exception {
+        exceptionRule.expect(RequiredFieldException.class);
+        testFile("NullInPayload");
+    }
+
 
 }

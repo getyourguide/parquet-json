@@ -129,7 +129,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
         void writeField(Object value) {
 
-            if (value instanceof NullNode) {
+            if (value instanceof NullNode || value == null) {
                 LOG.debug("Null value");
                 return;
             }
@@ -340,12 +340,24 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                             }
 
                         } else {
+
+                            if (valueSchema.getNullable() == null || !valueSchema.getNullable()) {
+                                throw new RequiredFieldException(String.format("Field %s missing/null and"
+                                    + " writeDefaultValue enabled", lkpFieldName));
+                            } else {
+                                fieldIndex++;
+                                continue;
+                            }
+                        }
+                    } else {
+                        if (valueSchema.getNullable() == null || !valueSchema.getNullable()) {
+                            throw new RequiredFieldException(String.format("Field %s missing/null"
+                                    + " but defined as non-nullable",
+                                lkpFieldName));
+                        } else {
                             fieldIndex++;
                             continue;
                         }
-                    } else {
-                        fieldIndex++;
-                        continue;
                     }
                 }
 
@@ -503,7 +515,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
         @Override
         final void writeField(Object value) {
 
-            if (value instanceof NullNode) {return;}
+            if (value instanceof NullNode || value == null) {return;}
 
             ArrayNode node = (ArrayNode) value;
 
