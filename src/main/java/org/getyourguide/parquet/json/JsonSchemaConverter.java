@@ -54,8 +54,15 @@ public class JsonSchemaConverter {
 
     public MessageType convert(ObjectSchema jsonClass) {
         LOG.debug("Converting OpenAPI described JsonNode class \"" + jsonClass.getClass() + "\" to parquet schema.");
+
+        String title = jsonClass.getTitle();
+
+        if (title == null) {
+            title = "ParquetSchema";
+        }
+
         MessageType messageType = convertFields(Types.buildMessage(), jsonClass.getProperties())
-                .named(jsonClass.getTitle());
+                .named(title);
         return messageType;
     }
 
@@ -141,7 +148,14 @@ public class JsonSchemaConverter {
             // so we assume that a "schema" with no type is an object
             Schema field = descriptor;
             descriptor = new ObjectSchema();
-            descriptor.setType(field.getTitle());
+
+            String fieldTitle = field.getTitle();
+
+            if (fieldTitle == null) {
+                fieldTitle = "ParquetSchema";
+            }
+
+            descriptor.setTitle(fieldTitle);
             descriptor.setProperties(field.getProperties());
             descriptor.setAdditionalProperties(field.getAdditionalProperties());
             descriptor.setName(field.getName());
