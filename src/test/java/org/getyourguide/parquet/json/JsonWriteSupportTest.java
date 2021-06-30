@@ -541,6 +541,91 @@ public class JsonWriteSupportTest extends JsonParquetTest {
     }
 
     @Test
+    public void testMapArrayOfObjects() throws Exception {
+        String TypeName = "TestMapStructureOfArrayOfObjects";
+
+        JsonWriteSupport support = getWriter(TypeName);
+        support.write(getExample(TypeName));
+
+        InOrder inOrder = Mockito.inOrder(readConsumerMock);
+        inOrder.verify(readConsumerMock).startMessage();
+        inOrder.verify(readConsumerMock).startField("map_key", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+
+        inOrder.verify(readConsumerMock).startField("key_value", 0);
+
+        // key1 group
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("key", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("key1"));
+        inOrder.verify(readConsumerMock).endField("key", 0);
+
+        inOrder.verify(readConsumerMock).startField("value", 1);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("name", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("b"));
+        inOrder.verify(readConsumerMock).endField("name", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("name", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("a"));
+        inOrder.verify(readConsumerMock).endField("name", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("value", 1);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        // key2 group
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("key", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("key2"));
+        inOrder.verify(readConsumerMock).endField("key", 0);
+        inOrder.verify(readConsumerMock).startField("value", 1);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("list", 0);
+
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("element", 0);
+        inOrder.verify(readConsumerMock).startGroup();
+        inOrder.verify(readConsumerMock).startField("name", 0);
+        inOrder.verify(readConsumerMock).addBinary(Binary.fromString("c"));
+        inOrder.verify(readConsumerMock).endField("name", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("element", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("list", 0);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("value", 1);
+        inOrder.verify(readConsumerMock).endGroup();
+
+        inOrder.verify(readConsumerMock).endField("key_value", 0);
+
+        inOrder.verify(readConsumerMock).endGroup();
+        inOrder.verify(readConsumerMock).endField("map_key", 0);
+        inOrder.verify(readConsumerMock).endMessage();
+        Mockito.verifyNoMoreInteractions(readConsumerMock);
+    }
+
+    @Test
     public void testObjectNoType() throws Exception {
         String TypeName = "TestObjectNoType";
 

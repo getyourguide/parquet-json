@@ -24,3 +24,10 @@ hs_err_pid*
 
 # Builds
 target/
+
+# IDE
+.idea
+*.iml
+
+# Jenv
+.java-version
