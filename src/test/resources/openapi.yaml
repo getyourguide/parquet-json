@@ -214,6 +214,29 @@ components:
           de:
             name: "german"
             text: "hallo"
+    TestMapStructureOfArrayOfObjects:
+      title: TestMapStructureOfArrayOfObjects
+      type: object
+      properties:
+        map_key:
+          type: object
+          additionalProperties:
+            type: array
+            items:
+              type: object
+              properties:
+                name:
+                  type: string
+      example:
+        map_key:
+          key1:
+            -
+              name: b
+            -
+              name: a
+          key2:
+            -
+              name: c
     TestObjectNoType:
       title: "TestObjectNoType"
       description: "OpenAPI doesn't require type == object for object but the parser we use will yield a schema with no type in that case"

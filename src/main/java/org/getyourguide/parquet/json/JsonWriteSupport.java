@@ -199,7 +199,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
             return new ArrayWriter(itemWriter);
         }
 
-        private MapWriter CreateMapWrite(Schema field, Type type) {
+        private MapWriter CreateMapWriter(Schema field, Type type) {
 
             StringSchema keySchema = new StringSchema();
             FieldWriter keyWriter = createWriter(keySchema, null); // with OPAI map always have string keys
@@ -217,7 +217,21 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
                         .asGroupType()
                         .getType("value");
                 valueWriter = createWriter(valueSchema, innerType);
-            } else {
+            } else if (valueSchema instanceof ArraySchema) {
+                Schema itemsSchema = ((ArraySchema) field.getAdditionalProperties()).getItems();
+                // Handle arrays of objects
+                if (itemsSchema instanceof ObjectSchema) {
+                    Type innerType = type
+                        .asGroupType()
+                        .getType("key_value")
+                        .asGroupType()
+                        .getType("value");
+                    valueWriter = createWriter(valueSchema, innerType);
+                } else {
+                    valueWriter = createWriter(valueSchema, type);
+                }
+            }
+            else {
                 valueWriter = createWriter(valueSchema, type);
             }
 
@@ -278,7 +292,7 @@ public class JsonWriteSupport<T extends JsonNode> extends WriteSupport<T> {
 
                 return CreateObjectWriter(field, type);
             } else if (field instanceof MapSchema) {
-                return CreateMapWrite(field, type);
+                return CreateMapWriter(field, type);
             }
             else {
                 return unknownType(field); //should not be executed, always throws exception.
