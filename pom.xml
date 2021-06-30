@@ -23,7 +23,7 @@
   <groupId>org.getyourguide.parquet</groupId>
   <artifactId>parquet-json</artifactId>
   <packaging>jar</packaging>
-  <version>1.11.0</version>
+  <version>1.12.0</version>
 
   <properties>
     <elephant-bird.version>4.4</elephant-bird.version>
