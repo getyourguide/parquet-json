@@ -1,0 +1,6 @@
+service:
+  name: datastores-config
+  owner: di
+  type: Other
+ci:
+  has_custom_iam_policy: true

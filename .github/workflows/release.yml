@@ -1,0 +1,28 @@
+name: Release
+
+on:
+  release:
+    types: [published]
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  publish:
+    runs-on: [self-hosted, java-small]
+    steps:
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
+      - name: Set up JDK
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
+        with:
+          distribution: temurin
+          java-version-file: .sdkmanrc
+      - name: Fetch CodeArtifact publish token
+        uses: getyourguide/actions/fetch-codeartifact-publish-token@main
+        with:
+          ci-role-name: ci-datastores-config
+      - name: Set release version from tag
+        run: mvn versions:set -DnewVersion=${GITHUB_REF_NAME#v} -B
+      - name: Publish release
+        run: mvn deploy -B -DskipTests -s .github/maven-settings.xml
