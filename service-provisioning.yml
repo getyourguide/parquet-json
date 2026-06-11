@@ -1,5 +1,5 @@
 service:
-  name: datastores-config
+  name: parquet-json
   owner: di
   type: Other
 ci:
