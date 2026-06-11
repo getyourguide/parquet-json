@@ -122,6 +122,19 @@
     </dependencies>
   </dependencyManagement>
 
+  <distributionManagement>
+    <repository>
+      <id>getyourguide-private-store</id>
+      <name>getyourguide-private-store</name>
+      <url>https://getyourguide-130607246975.d.codeartifact.eu-central-1.amazonaws.com/maven/private-store/</url>
+    </repository>
+    <snapshotRepository>
+      <id>getyourguide-private-store</id>
+      <name>getyourguide-private-store</name>
+      <url>https://getyourguide-130607246975.d.codeartifact.eu-central-1.amazonaws.com/maven/private-store/</url>
+    </snapshotRepository>
+  </distributionManagement>
+
   <developers>
     <developer>
       <id>emmanuelbrard</id>

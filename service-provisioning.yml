@@ -1,0 +1,6 @@
+service:
+  name: parquet-json
+  owner: di
+  type: Other
+ci:
+  has_custom_iam_policy: true

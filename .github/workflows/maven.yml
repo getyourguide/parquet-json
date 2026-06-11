@@ -1,28 +1,44 @@
-# This workflow will build a Java project with Maven
-# For more information see: https://help.github.com/actions/language-and-framework-guides/building-and-testing-java-with-maven
-
-name: Java CI with Maven
+name: Java CI
 
 on:
   push:
-    branches: [ master ]
+    branches: [master]
   pull_request:
-    branches: [ master ]
+    branches: [master]
 
 permissions:
-  contents: write
+  contents: read
+  id-token: write
 
 jobs:
   build:
-
-    runs-on: ubuntu-latest
-
+    runs-on: [self-hosted, java-small]
     steps:
-    - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
-    - name: Set up JDK 17
-      uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
-      with:
-        distribution: temurin
-        java-version-file: .sdkmanrc
-    - name: Test
-      run: mvn test -B
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
+      - name: Set up JDK
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
+        with:
+          distribution: temurin
+          java-version-file: .sdkmanrc
+      - name: Test
+        run: mvn test -B
+
+  publish-snapshot:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/master'
+    needs: build
+    runs-on: [self-hosted, java-small]
+    steps:
+      - uses: actions/checkout@ee0669bd1cc54295c223e0bb666b733df41de1c5 # v2.7.0
+      - name: Set up JDK
+        uses: actions/setup-java@f2beeb24e141e01a676f977032f5a29d81c9e27e # v5.1.0
+        with:
+          distribution: temurin
+          java-version-file: .sdkmanrc
+      - name: Fetch CodeArtifact publish token
+        uses: getyourguide/actions/fetch-codeartifact-publish-token@main
+        with:
+          ci-role-name: ci-datastores-config
+      - name: Set snapshot version
+        run: mvn versions:set -DnewVersion=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout)-SNAPSHOT -B
+      - name: Publish snapshot
+        run: mvn deploy -B -DskipTests -s .github/maven-settings.xml
